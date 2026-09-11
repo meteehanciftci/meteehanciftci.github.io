@@ -1,43 +1,13 @@
 (() => {
-  const root = document.documentElement;
-  const themeToggle = document.getElementById("theme-toggle");
+  const header = document.querySelector(".site-header");
   const menuToggle = document.getElementById("menu-toggle");
   const nav = document.getElementById("primary-nav");
-  const header = document.querySelector(".site-header");
 
-  function systemTheme() {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  }
-
-  function applyTheme(theme, { persist = false } = {}) {
-    root.setAttribute("data-theme", theme);
-    if (persist) localStorage.setItem("theme", theme);
-    if (themeToggle) {
-      themeToggle.setAttribute(
-        "aria-label",
-        theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç",
-      );
-    }
-  }
-
-  const stored = localStorage.getItem("theme");
-  applyTheme(stored === "light" || stored === "dark" ? stored : systemTheme());
-
-  themeToggle?.addEventListener("click", () => {
-    const next =
-      root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    applyTheme(next, { persist: true });
-  });
-
-  window
-    .matchMedia("(prefers-color-scheme: dark)")
-    .addEventListener("change", (event) => {
-      if (!localStorage.getItem("theme")) {
-        applyTheme(event.matches ? "dark" : "light");
-      }
-    });
+  const onScroll = () => {
+    header?.classList.toggle("is-scrolled", window.scrollY > 8);
+  };
+  onScroll();
+  window.addEventListener("scroll", onScroll, { passive: true });
 
   function closeMenu() {
     if (!nav || !menuToggle) return;
@@ -56,8 +26,8 @@
   }
 
   menuToggle?.addEventListener("click", () => {
-    const expanded = menuToggle.getAttribute("aria-expanded") === "true";
-    if (expanded) closeMenu();
+    const open = menuToggle.getAttribute("aria-expanded") === "true";
+    if (open) closeMenu();
     else openMenu();
   });
 
@@ -70,16 +40,23 @@
   });
 
   window.addEventListener("resize", () => {
-    if (window.innerWidth > 760) closeMenu();
+    if (window.innerWidth > 820) closeMenu();
   });
 
-  const onScroll = () => {
-    header?.classList.toggle("is-scrolled", window.scrollY > 8);
-  };
-  onScroll();
-  window.addEventListener("scroll", onScroll, { passive: true });
+  const path = window.location.pathname.replace(/\/$/, "") || "/";
+  nav?.querySelectorAll("a[href]").forEach((link) => {
+    try {
+      const url = new URL(link.href);
+      const linkPath = url.pathname.replace(/\/$/, "") || "/";
+      if (linkPath === path) {
+        link.setAttribute("aria-current", "page");
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  });
 
-  const revealEls = document.querySelectorAll(".reveal");
+  const reveals = document.querySelectorAll(".reveal");
   if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -90,10 +67,10 @@
           }
         });
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
     );
-    revealEls.forEach((el) => observer.observe(el));
+    reveals.forEach((el) => observer.observe(el));
   } else {
-    revealEls.forEach((el) => el.classList.add("is-visible"));
+    reveals.forEach((el) => el.classList.add("is-visible"));
   }
 })();

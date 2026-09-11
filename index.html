@@ -3,14 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simple Man — Metehan Çiftçi</title>
+    <title>Simple Man — Sade yaşam, kalıcı eşyalar, sağlam prensipler</title>
     <meta
       name="description"
-      content="Simple Man — sade, sağlam ve bilinçli bir hayat. Americana, heritage, stoacılık ve CIFL."
+      content="Simple Man — sade yaşam, kalıcı eşyalar ve sağlam prensipler. Americana, heritage, stoacılık ve CIFL üzerine bağımsız bir kişisel yayın."
     />
     <link rel="canonical" href="https://meteehanciftci.github.io/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Simple Man — Metehan Çiftçi" />
+    <meta property="og:site_name" content="Simple Man" />
+    <meta property="og:title" content="Simple Man — Sade yaşam, kalıcı eşyalar, sağlam prensipler" />
     <meta
       property="og:description"
       content="Daha fazlasına sahip olmakla değil, daha az şeye ihtiyaç duymakla ilgileniyorum."
@@ -21,347 +22,259 @@
     <meta name="twitter:title" content="Simple Man" />
     <meta
       name="twitter:description"
-      content="Daha fazlasına sahip olmakla değil, daha az şeye ihtiyaç duymakla ilgileniyorum."
+      content="Sade yaşam, kalıcı eşyalar ve sağlam prensipler."
     />
-    <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#F3EBD8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./css/style.css" />
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("theme");
-          var theme =
-            stored ||
-            (window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light");
-          document.documentElement.setAttribute("data-theme", theme);
-        } catch (e) {
-          document.documentElement.setAttribute("data-theme", "light");
-        }
-      })();
-    </script>
+    <link rel="stylesheet" href="/css/style.css" />
   </head>
   <body>
     <a class="skip-link" href="#main">İçeriğe atla</a>
 
     <header class="site-header">
       <div class="container header-inner">
-        <a class="logo" href="#top">Simple Man</a>
-
+        <a class="logo" href="/">Simple Man</a>
         <nav class="nav" id="primary-nav" aria-label="Ana menü">
           <ul class="nav-list">
-            <li><a href="#az-ama-iyi">Az ama iyi</a></li>
-            <li><a href="#americana">Americana</a></li>
-            <li><a href="#stoacilik">Stoacılık</a></li>
-            <li><a href="#cifl">CIFL</a></li>
-            <li>
-              <a href="mailto:metehanciftcii@icloud.com">İletişim</a>
-            </li>
+            <li><a href="/journal/">Journal</a></li>
+            <li><a href="/heritage/">Heritage</a></li>
+            <li><a href="/stoicism/">Stoicism</a></li>
+            <li><a class="is-cifl" href="/cifl/">CIFL</a></li>
+            <li><a href="/about/">About</a></li>
           </ul>
         </nav>
-
-        <div class="header-actions">
-          <button
-            type="button"
-            class="theme-toggle"
-            id="theme-toggle"
-            aria-label="Temayı değiştir"
-            title="Temayı değiştir"
-          >
-            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.75" />
-              <path
-                d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-              />
-            </svg>
-            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M20.5 14.2A8.2 8.2 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
-
-          <button
-            type="button"
-            class="menu-toggle"
-            id="menu-toggle"
-            aria-expanded="false"
-            aria-controls="primary-nav"
-            aria-label="Menüyü aç"
-          >
-            <span class="menu-toggle-bar" aria-hidden="true"></span>
-            <span class="menu-toggle-bar" aria-hidden="true"></span>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="menu-toggle"
+          id="menu-toggle"
+          aria-expanded="false"
+          aria-controls="primary-nav"
+          aria-label="Menüyü aç"
+        >
+          <span class="menu-toggle-bar" aria-hidden="true"></span>
+          <span class="menu-toggle-bar" aria-hidden="true"></span>
+        </button>
       </div>
     </header>
 
     <main id="main">
-      <section class="hero" id="top" aria-label="Giriş">
+      <section class="hero">
         <div class="container hero-inner">
-          <p class="hero-kicker reveal">Simple Man</p>
-          <h1 class="hero-title reveal">
-            Daha fazlasına sahip olmakla değil, daha az şeye ihtiyaç duymakla
-            ilgileniyorum.
-          </h1>
+          <p class="eyebrow reveal">Simple Man / Est. 2026</p>
+          <h1 class="hero-title reveal">Daha az.<br />Ama daha iyi.</h1>
           <p class="hero-lead reveal">
-            Sade, sağlam ve bilinçli bir hayat.
+            Sade yaşam, kalıcı eşyalar ve sağlam prensipler üzerine bağımsız bir
+            kişisel yayın.
           </p>
+          <p class="hero-tags reveal">Americana · Heritage · Stoicism · CIFL</p>
           <div class="hero-actions reveal">
-            <a class="btn btn-primary" href="#simple-man">Okumaya başla</a>
-            <a class="btn btn-secondary" href="mailto:metehanciftcii@icloud.com"
-              >İletişime geç</a
-            >
+            <a class="btn btn-primary" href="#manifesto">Manifestoyu Oku</a>
+            <a class="btn btn-text" href="/journal/">Journal’ı Keşfet</a>
           </div>
         </div>
       </section>
 
-      <section class="section" id="simple-man">
-        <div class="container prose">
-          <h2 class="section-title reveal">Simple Man</h2>
-          <div class="prose-body reveal">
-            <p>
-              Benim için Simple Man, yalnızca sade yaşamak anlamına gelmiyor.
-              Nasıl giyindiğimden ne satın aldığıma, zamanımı nasıl
-              kullandığımdan neye değer verdiğime kadar uzanan bir yaşam
-              anlayışı.
+      <section class="manifesto" id="manifesto" aria-label="Manifesto">
+        <div class="container">
+          <ul class="manifesto-list reveal">
+            <li><span>01</span> Az eşya.</li>
+            <li><span>02</span> İyi eşya.</li>
+            <li><span>03</span> Az gürültü.</li>
+            <li><span>04</span> Net prensipler.</li>
+            <li><span>05</span> Sağlam karakter.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="principles">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Principles</p>
+            <h2 class="section-title">Dört temel.</h2>
+            <p class="section-sub">
+              Simple Man tek bir slogan değil. Birlikte tutulan birkaç net
+              prensip.
             </p>
-            <p>
-              Bu anlayışın temelinde birkaç farklı dünya buluşuyor:
-            </p>
-            <p class="prose-emphasis">
-              Americana. Heritage. Stoacılık. CIFL.
-            </p>
-            <p>
-              İlk bakışta birbirinden farklı görünebilirler. Benim için hepsi
-              aynı yere çıkıyor:
-            </p>
-            <p class="prose-pull">
-              Sade, sağlam ve bilinçli bir hayat.
-            </p>
+          </div>
+          <div class="principles">
+            <article class="principle reveal">
+              <span class="principle-num">01</span>
+              <h3 class="principle-title">Az, ama iyi</h3>
+              <p class="principle-text">
+                Nicelikten çok nitelik. On vasat şey yerine bir iyi şey.
+              </p>
+            </article>
+            <article class="principle reveal">
+              <span class="principle-num">02</span>
+              <h3 class="principle-title">Americana × Heritage</h3>
+              <p class="principle-text">
+                Kullan. Bakımını yap. Tamir et. Eskit. Devam et.
+              </p>
+            </article>
+            <article class="principle reveal">
+              <span class="principle-num">03</span>
+              <h3 class="principle-title">Stoacılık</h3>
+              <p class="principle-text">
+                Kontrol edebildiğin şeye enerji ver. Gerisini bırak.
+              </p>
+            </article>
+            <article class="principle reveal">
+              <span class="principle-num">04</span>
+              <h3 class="principle-title">CIFL</h3>
+              <p class="principle-text">
+                Satın almadan önce bir dakika. İstek ile ihtiyacı ayır.
+              </p>
+            </article>
           </div>
         </div>
       </section>
 
-      <section class="section section-alt" id="az-ama-iyi">
-        <div class="container prose">
-          <h2 class="section-title reveal">Az, ama iyi</h2>
-          <div class="prose-body reveal">
-            <p>Her yeni şey hayatı daha iyi yapmaz.</p>
+      <section class="section" id="journal-preview" style="padding-top: 0">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="eyebrow">Journal</p>
+            <h2 class="section-title">Notlar, denemeler ve prensipler.</h2>
+          </div>
+
+          <article class="journal-featured reveal">
+            <div class="meta">
+              <span class="cat">Manifesto</span>
+              <span>11 Sep 2026</span>
+              <span>6 dk</span>
+            </div>
+            <h3>
+              <a href="/journal/az-ama-iyi/">Daha fazlasına sahip olmak zorunda değilsin.</a>
+            </h3>
             <p>
-              Bazen yeni bir eşya yalnızca başka bir eşya, yeni bir özellik
-              yalnızca başka bir dikkat dağıtıcı, daha fazla seçenek ise yalnızca
-              daha fazla zihinsel yük demektir.
+              Simple Man; sade yaşamakla sınırlı değil. Nasıl giyindiğinden neye
+              değer verdiğine kadar uzanan bir yaşam anlayışı.
             </p>
-            <p>
-              Bu yüzden hayatıma giren şeylerde nicelikten çok niteliği
-              önemsiyorum.
-            </p>
-            <ul class="prose-list">
-              <li>On tane vasat şey yerine bir tane iyi şey.</li>
-              <li>
-                Bir sezon kullanılacak bir ürün yerine yıllarca yaşlanacak bir
-                ürün.
-              </li>
-              <li>Gösterişli olan yerine işini iyi yapan.</li>
-              <li>Trend olan yerine karakteri olan.</li>
-            </ul>
-            <p>
-              Amaç mümkün olduğunca az şeye sahip olmak değil. Neye sahip
-              olduğumu bilmek ve neden sahip olduğumu anlayabilmek.
-            </p>
+            <a class="btn btn-text" href="/journal/az-ama-iyi/">Yazıyı oku</a>
+          </article>
+
+          <div class="journal-grid">
+            <article class="journal-item reveal">
+              <div class="meta">
+                <span class="cat">Heritage</span>
+                <span>4 dk</span>
+              </div>
+              <h3>
+                <a href="/journal/iyi-esya-yaslanir/">İyi bir eşya eskimez. Yaşlanır.</a>
+              </h3>
+              <p>
+                Patina bir kusur olmak zorunda değildir. Bazen birlikte geçen
+                zamanın kaydıdır.
+              </p>
+              <a class="read-link" href="/journal/iyi-esya-yaslanir/">Oku →</a>
+            </article>
+            <article class="journal-item reveal">
+              <div class="meta">
+                <span class="cat">Stoicism</span>
+                <span>5 dk</span>
+              </div>
+              <h3>
+                <a href="/journal/kontrol-edebildigin/">Kontrol edebildiğin şeye odaklan.</a>
+              </h3>
+              <p>
+                Dışarıdan nasıl göründüğünden çok, nasıl bir insan olduğun.
+              </p>
+              <a class="read-link" href="/journal/kontrol-edebildigin/">Oku →</a>
+            </article>
+            <article class="journal-item reveal">
+              <div class="meta">
+                <span class="cat">CIFL</span>
+                <span>3 dk</span>
+              </div>
+              <h3>
+                <a href="/cifl/">Buna gerçekten ihtiyacın var mı?</a>
+              </h3>
+              <p>
+                Bilinçsiz tüketimi reddet. Bazen en iyi satın alma, satın
+                almadığın şeydir.
+              </p>
+              <a class="read-link" href="/cifl/">Filtreyi dene →</a>
+            </article>
           </div>
         </div>
       </section>
 
-      <section class="section" id="americana">
-        <div class="container prose">
-          <h2 class="section-title reveal">Americana × Heritage</h2>
+      <section class="section">
+        <div class="container split">
+          <div class="split-label reveal">
+            <p class="eyebrow">Heritage</p>
+            <h2 class="section-title">Kalıcılık fikri.</h2>
+          </div>
           <div class="prose-body reveal">
             <p>
               Americana ve heritage kültüründe sevdiğim şey nostaljinin kendisi
-              değil. Kalıcılık fikri.
+              değil. Denim, deri, kanvas, yün, iyi bir bot, yıllandıkça
+              güzelleşen bir ceket…
             </p>
-            <p>
-              Denim, deri, kanvas, yün, iyi bir çift bot, yıllandıkça
-              güzelleşen bir ceket, tamir edilip tekrar kullanılan bir eşya…
-            </p>
-            <p>
+            <p class="pull">
               Bunların çekiciliği kusursuz kalmalarında değil, zamanın izlerini
               taşıyabilmelerinde.
             </p>
-            <p class="prose-pull">
-              İyi bir eşya eskimez.<br />
-              Yaşlanır.
-            </p>
             <p>
-              Üzerindeki çizik, solma veya patina bir kusur olmak zorunda
-              değildir. Bazen eşyanın seninle geçirdiği zamanın kaydıdır.
+              Amaç ürün tüketimini teşvik etmek değil: daha az ama daha uzun
+              ömürlü eşya kullanmak.
             </p>
-            <p>
-              Bu yüzden heritage benim için bir giyim tarzından çok daha
-              fazlası.
-            </p>
-            <p class="prose-emphasis">
-              Kullan. Bakımını yap. Tamir et. Eskit. Devam et.
-            </p>
+            <a class="btn btn-secondary" href="/heritage/">Heritage’i oku</a>
           </div>
         </div>
       </section>
 
-      <section class="section section-alt" id="stoacilik">
-        <div class="container prose">
-          <h2 class="section-title reveal">Stoacılık</h2>
+      <section class="section" style="padding-top: 0">
+        <div class="container split">
+          <div class="split-label reveal">
+            <p class="eyebrow">CIFL</p>
+            <h2 class="section-title">Satın almadan önce bir dakika.</h2>
+          </div>
           <div class="prose-body reveal">
             <p>
-              Stoacılık bana çok basit bir ayrımı hatırlatıyor:
+              CIFL; tüketimi tamamen reddetmek değil. Bilinçsiz tüketimi
+              reddetmektir. Almayı düşündüğün şeyi birkaç sorudan geçir, istekle
+              ihtiyaç arasındaki mesafeyi gör.
             </p>
-            <ul class="prose-list">
-              <li>Kontrol edebildiğim şeyler var.</li>
-              <li>Kontrol edemediğim şeyler var.</li>
-            </ul>
-            <p>Enerjimi birincisine vermeye çalışıyorum.</p>
-            <p>
-              Başkalarının ne düşündüğünü, dünyanın ne yaptığını veya yarının
-              ne getireceğini tamamen kontrol edemem. Ama davranışlarımı,
-              seçimlerimi, tepkilerimi ve karakterimi şekillendirebilirim.
+            <div class="tag-cloud">
+              <span>İhtiyaç</span>
+              <span>Kullanım</span>
+              <span>Uzun ömür</span>
+              <span>Motivasyon</span>
+            </div>
+            <p style="margin-top: 1.75rem">
+              <a class="btn btn-primary" href="/cifl/">CIFL Filtresini Başlat</a>
             </p>
-            <p>
-              Bu yüzden Simple Man’in merkezinde dışarıdan nasıl göründüğüm
-              değil, nasıl bir insan olduğum var.
-            </p>
-            <ul class="prose-list">
-              <li>Daha sakin.</li>
-              <li>Daha dayanıklı.</li>
-              <li>Daha ölçülü.</li>
-              <li>Daha bağımsız.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="cifl">
-        <div class="container prose">
-          <h2 class="section-title reveal">CIFL</h2>
-          <div class="prose-body reveal">
-            <p>
-              Tüketim konusunda ise kendime basit bir soru soruyorum:
-            </p>
-            <p class="prose-pull">Buna gerçekten ihtiyacım var mı?</p>
-            <p>
-              CIFL benim için bu soruyu sistematik hale getirmenin yolu.
-            </p>
-            <ul class="prose-list">
-              <li>Bir şeyi satın almadan önce durmak.</li>
-              <li>İstek ile ihtiyaç arasındaki mesafeyi görmek.</li>
-              <li>
-                Elimde zaten aynı işi yapan bir şey olup olmadığını düşünmek.
-              </li>
-              <li>Onu ne kadar kullanacağımı sorgulamak.</li>
-              <li>
-                Bakımını yapmaya, saklamaya ve hayatımda ona yer açmaya değip
-                değmeyeceğine karar vermek.
-              </li>
-            </ul>
-            <p>
-              CIFL tüketimi tamamen reddetmek değildir. Bilinçsiz tüketimi
-              reddetmektir.
-            </p>
-            <p>
-              Çünkü bazen en iyi satın alma, satın almadığın şeydir. Bazen de
-              yıllarca kullanacağın doğru bir ürüne daha fazla para vermek,
-              sürekli ucuz alternatifler satın almaktan çok daha sadedir.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section class="section section-alt" id="kapanis">
-        <div class="container prose">
-          <h2 class="section-title reveal">Simple Man</h2>
-          <div class="prose-body reveal">
-            <p>
-              Bu site kusursuz bir hayatın rehberi değil. Ben de kusursuz
-              yaşamıyorum.
-            </p>
-            <p>
-              Burası daha çok kendi hayatımda cevaplamaya çalıştığım soruların
-              bir kaydı:
-            </p>
-            <ul class="prose-list">
-              <li>Gerçekten neye ihtiyacım var?</li>
-              <li>Neyi hayatımdan çıkarabilirim?</li>
-              <li>Neye sahip olmaya değer?</li>
-              <li>Bir eşya neden yıllarca kullanılabilir?</li>
-              <li>Daha az tüketerek daha iyi yaşayabilir miyim?</li>
-              <li>
-                Kontrolüm dışındaki şeylere daha az enerji harcayabilir miyim?
-              </li>
-              <li>Ve bütün gürültü biraz azaldığında geriye ne kalır?</li>
-            </ul>
-            <p>
-              Benim cevabım giderek daha basit hale geliyor.
-            </p>
-            <p class="prose-emphasis">
-              Az eşya.<br />
-              İyi eşya.<br />
-              Az gürültü.<br />
-              Net prensipler.<br />
-              Sağlam karakter.
-            </p>
-            <p>
-              Gösteriş için değil. Trend olduğu için değil. Başkalarına bir şey
-              kanıtlamak için değil.
-            </p>
-            <p>
-              İşe yaradığı, anlam taşıdığı ve yaşamaya değer olduğu için.
-            </p>
-            <p class="prose-pull">Simple Man bunun üzerine.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="iletisim">
-        <div class="container prose">
-          <h2 class="section-title reveal">İletişim</h2>
-          <p class="section-text reveal">
-            Yazmak, konuşmak veya bir şey sormak istersen bana mail
-            gönderebilirsin.
-          </p>
-          <div class="contact-actions reveal">
-            <a class="btn btn-primary" href="mailto:metehanciftcii@icloud.com"
-              >metehanciftcii@icloud.com</a
-            >
           </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <div class="container footer-inner">
-        <p>© 2026 Metehan Çiftçi · Simple Man</p>
-        <a class="footer-mail" href="mailto:metehanciftcii@icloud.com"
-          >E-posta</a
-        >
+      <div class="container">
+        <p class="footer-brand">Simple Man</p>
+        <p class="footer-tag">Daha az. Ama daha iyi.</p>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/journal/">Journal</a>
+          <a href="/heritage/">Heritage</a>
+          <a href="/stoicism/">Stoicism</a>
+          <a href="/cifl/">CIFL</a>
+          <a href="/about/">About</a>
+        </nav>
+        <div class="footer-bottom">
+          <p>Built with restraint. © 2026 Metehan Çiftçi</p>
+          <a class="footer-mail" href="mailto:metehanciftcii@icloud.com"
+            >metehanciftcii@icloud.com</a
+          >
+        </div>
       </div>
     </footer>
 
-    <script src="./js/main.js" defer></script>
+    <script src="/js/main.js" defer></script>
   </body>
 </html>

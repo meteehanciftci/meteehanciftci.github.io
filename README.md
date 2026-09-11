@@ -1,38 +1,45 @@
 # Simple Man
 
-Metehan Çiftçi’nin kişisel sitesi. Sade, sağlam ve bilinçli bir hayat üzerine.
+Quiet premium editorial site for a personal philosophy of less, better, and lasting.
 
-Canlı: [https://meteehanciftci.github.io/](https://meteehanciftci.github.io/)
+Live: https://meteehanciftci.github.io/
 
-## Yapı
+## Stack
+
+- HTML + CSS + vanilla JS
+- GitHub Pages
+- No framework
+
+## Structure
 
 ```text
-website/
+/
 ├── index.html
+├── journal/
+├── heritage/
+├── stoicism/
+├── cifl/
+├── about/
 ├── css/style.css
 ├── js/main.js
-├── favicon.svg
-└── README.md
+├── js/cifl.js
+└── favicon.svg
 ```
 
-## Yerel çalıştırma
+## Local
 
 ```bash
 cd website
 python3 -m http.server 8080
 ```
 
-## İçerik
+Open http://127.0.0.1:8080
 
-Metinler `index.html` içinde. İletişim: `mailto:metehanciftcii@icloud.com`
+## Contact
 
-## Yayın
+mailto:metehanciftcii@icloud.com
 
-Repo: `meteehanciftci/meteehanciftci.github.io`  
-GitHub Pages: `main` branch, kök dizin.
+## Deploy
 
-```bash
-git add -A
-git commit -m "Update site"
-git push origin main
-```
+Push to `main` on `meteehanciftci/meteehanciftci.github.io`.
+GitHub Pages serves the root.

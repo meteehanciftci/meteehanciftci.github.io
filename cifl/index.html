@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CIFL Filtresi — Simple Man</title>
+    <meta name="description" content="Satın almadan önce bir dakika. CIFL filtresi ile ihtiyacını yeniden sor." />
+    <link rel="canonical" href="https://meteehanciftci.github.io/cifl/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Simple Man" />
+    <meta property="og:title" content="CIFL Filtresi — Simple Man" />
+    <meta property="og:description" content="Satın almadan önce bir dakika. CIFL filtresi ile ihtiyacını yeniden sor." />
+    <meta property="og:url" content="https://meteehanciftci.github.io/cifl/" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="CIFL Filtresi — Simple Man" />
+    <meta name="twitter:description" content="Satın almadan önce bir dakika. CIFL filtresi ile ihtiyacını yeniden sor." />
+    <meta name="theme-color" content="#F3EBD8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body>
+    <a class="skip-link" href="#main">İçeriğe atla</a>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="logo" href="/">Simple Man</a>
+        <nav class="nav" id="primary-nav" aria-label="Ana menü">
+          <ul class="nav-list">
+            <li><a href="/journal/">Journal</a></li>
+            <li><a href="/heritage/">Heritage</a></li>
+            <li><a href="/stoicism/">Stoicism</a></li>
+            <li><a class="is-cifl" href="/cifl/">CIFL</a></li>
+            <li><a href="/about/">About</a></li>
+          </ul>
+        </nav>
+        <button type="button" class="menu-toggle" id="menu-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Menüyü aç">
+          <span class="menu-toggle-bar" aria-hidden="true"></span>
+          <span class="menu-toggle-bar" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+    <main id="main">
+
+      <header class="page-hero">
+        <div class="container">
+          <p class="eyebrow reveal">CIFL Filtresi</p>
+          <h1 class="reveal">Satın almadan önce bir dakika.</h1>
+          <p class="reveal">Almayı düşündüğün şeyi birkaç sorudan geçir. İstek ile ihtiyaç arasındaki mesafeyi gör.</p>
+        </div>
+      </header>
+
+      <section class="section" style="padding-top:0">
+        <div class="container">
+          <div class="cifl-shell">
+            <div id="cifl-start" class="cifl-intro reveal">
+              <div class="cifl-field">
+                <label for="cifl-item">Ne almayı düşünüyorsun?</label>
+                <input id="cifl-item" type="text" placeholder="Örn. yeni bir mont" autocomplete="off" />
+              </div>
+              <div class="cifl-actions">
+                <button type="button" class="btn btn-primary" id="cifl-start-btn">Filtreyi Başlat</button>
+              </div>
+              <p style="margin-top:1.25rem;color:var(--muted);font-size:0.95rem">
+                Veriler sunucuya gitmez. Her şey tarayıcında kalır.
+              </p>
+            </div>
+
+            <div id="cifl-flow" class="cifl-panel" hidden>
+              <div class="cifl-progress" id="cifl-progress"></div>
+              <h2 class="cifl-question" id="cifl-question"></h2>
+              <div class="cifl-options" id="cifl-options"></div>
+              <div class="cifl-actions">
+                <button type="button" class="btn btn-secondary" id="cifl-back">Geri</button>
+              </div>
+            </div>
+
+            <div id="cifl-result" class="cifl-result" hidden>
+              <p class="cifl-result-kicker" id="cifl-result-item"></p>
+              <h2 class="cifl-result-title" id="cifl-result-title"></h2>
+              <p class="cifl-result-body" id="cifl-result-body"></p>
+              <ul class="cifl-reasons" id="cifl-result-reasons"></ul>
+              <div class="cifl-actions">
+                <button type="button" class="btn btn-primary" id="cifl-restart">Yeniden dene</button>
+                <a class="btn btn-secondary" href="/journal/">Journal’a dön</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p class="footer-brand">Simple Man</p>
+        <p class="footer-tag">Daha az. Ama daha iyi.</p>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/journal/">Journal</a>
+          <a href="/heritage/">Heritage</a>
+          <a href="/stoicism/">Stoicism</a>
+          <a href="/cifl/">CIFL</a>
+          <a href="/about/">About</a>
+        </nav>
+        <div class="footer-bottom">
+          <p>Built with restraint. © 2026 Metehan Çiftçi</p>
+          <a class="footer-mail" href="mailto:metehanciftcii@icloud.com">metehanciftcii@icloud.com</a>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/js/main.js" defer></script>
+    <script src="/js/cifl.js" defer></script>
+  </body>
+</html>
