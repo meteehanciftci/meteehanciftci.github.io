@@ -1,19 +1,207 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kıyı — Dijital stüdyo</title>
+    <title>Metehan Çiftçi — Dijital ürünler &amp; projeler</title>
+    <meta
+      name="description"
+      content="Metehan Çiftçi — dijital ürünler, projeler ve fikirler. Minimal Reader ve diğer çalışmalar."
+    />
+    <link rel="canonical" href="https://example.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Metehan Çiftçi — Dijital ürünler &amp; projeler" />
+    <meta
+      property="og:description"
+      content="Dijital ürünler, projeler ve fikirler geliştiriyorum."
+    />
+    <meta property="og:url" content="https://example.com/" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Metehan Çiftçi" />
+    <meta
+      name="twitter:description"
+      content="Dijital ürünler, projeler ve fikirler geliştiriyorum."
+    />
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="./css/style.css" />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var theme =
+            stored ||
+            (window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <a class="skip-link" href="#main">İçeriğe atla</a>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="logo" href="#top">Metehan</a>
+
+        <nav class="nav" id="primary-nav" aria-label="Ana menü">
+          <ul class="nav-list">
+            <li><a href="#hakkimda">Hakkımda</a></li>
+            <li><a href="#projeler">Projeler</a></li>
+            <li><a href="#iletisim">İletişim</a></li>
+          </ul>
+        </nav>
+
+        <div class="header-actions">
+          <button
+            type="button"
+            class="theme-toggle"
+            id="theme-toggle"
+            aria-label="Temayı değiştir"
+            title="Temayı değiştir"
+          >
+            <svg class="icon icon-sun" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.75" />
+              <path
+                d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+              />
+            </svg>
+            <svg class="icon icon-moon" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20.5 14.2A8.2 8.2 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="menu-toggle"
+            id="menu-toggle"
+            aria-expanded="false"
+            aria-controls="primary-nav"
+            aria-label="Menüyü aç"
+          >
+            <span class="menu-toggle-bar" aria-hidden="true"></span>
+            <span class="menu-toggle-bar" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-label="Giriş">
+        <div class="container hero-inner">
+          <h1 class="hero-title reveal">Merhaba, ben Metehan.</h1>
+          <p class="hero-lead reveal">
+            Dijital ürünler, projeler ve fikirler geliştiriyorum.
+          </p>
+          <div class="hero-actions reveal">
+            <a class="btn btn-primary" href="#projeler">Projelerimi Gör</a>
+            <a class="btn btn-secondary" href="#iletisim">İletişime Geç</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="hakkimda">
+        <div class="container narrow">
+          <h2 class="section-title reveal">Hakkımda</h2>
+          <p class="section-text reveal" data-content="about">
+            Yeni fikirler üretmeyi, dijital ürünler geliştirmeyi ve sade
+            çözümler oluşturmayı seviyorum. Bu site üzerinde projelerimi ve
+            çalışmalarımı paylaşıyorum.
+          </p>
+        </div>
+      </section>
+
+      <section class="section section-alt" id="projeler">
+        <div class="container">
+          <h2 class="section-title reveal">Projeler</h2>
+          <div class="project-grid" id="project-grid">
+            <article class="project-card reveal">
+              <h3 class="project-name">Minimal Reader</h3>
+              <p class="project-desc">
+                Android için sade ve çevrimdışı EPUB okuyucu.
+              </p>
+              <p class="project-tech">Kotlin · Jetpack Compose · Readium</p>
+              <a
+                class="btn btn-ghost"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Projeyi görüntüle</a
+              >
+            </article>
+
+            <article class="project-card reveal">
+              <h3 class="project-name">Project Two</h3>
+              <p class="project-desc">
+                Buraya daha sonra yeni proje eklenebilecek örnek bir kart.
+              </p>
+              <p class="project-tech">HTML · CSS · JavaScript</p>
+              <a
+                class="btn btn-ghost"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Projeyi görüntüle</a
+              >
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="iletisim">
+        <div class="container narrow">
+          <h2 class="section-title reveal">Bir şeyler üretelim.</h2>
+          <p class="section-text reveal">
+            Proje, fikir veya iş birliği için benimle iletişime geçebilirsin.
+          </p>
+          <div class="contact-actions reveal">
+            <a class="btn btn-primary" href="mailto:hello@example.com"
+              >İletişime Geç</a
+            >
+            <ul class="social-list" aria-label="Sosyal bağlantılar">
+              <!-- Örnek: <li><a href="https://github.com/kullanici" target="_blank" rel="noopener noreferrer">GitHub</a></li> -->
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>© 2026 Metehan Çiftçi</p>
+        <ul class="social-list footer-social" aria-label="Sosyal medya">
+          <!--
+          <li><a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+          <li><a href="https://instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+          <li><a href="https://x.com/" target="_blank" rel="noopener noreferrer">X</a></li>
+          -->
+        </ul>
+      </div>
+    </footer>
+
+    <script src="./js/main.js" defer></script>
   </body>
 </html>
