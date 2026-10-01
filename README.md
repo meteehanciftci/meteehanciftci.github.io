@@ -21,11 +21,11 @@ npx serve out
 ## Kullanım
 
 1. **+ Harcama Ekle** — yer, tutar, ödeme, sınıf, kategori.
-2. Ana ekran — dönem toplamı, sınıf dağılımı, trend, içgörü, son kayıtlar.
-3. **Tümü** — arama (ör. “geçen ayki lüks”), sınıf / kategori / tutar filtresi.
-4. Bir kayda dokunun — düzenle veya sil.
-5. **Analiz** — sınıf, kategori, işletme, zaman, ödeme ve Harcama AI.
-6. **Ayarlar** — AI’yi kapatma, isteğe bağlı hedefler, CSV / JSON.
+2. Ana ekranda ay seçici — ‹ Eylül 2026 ›. Ay değiştirmek kayıtları silmez.
+3. **Harcamalar** — seçilen ay, arama ve filtre.
+4. Bir kayda dokunun — slip detayı, düzenle veya sil. Sola kaydırma silme onayı açar.
+5. **Analiz** — sınıflar, kategoriler, zaman, işletmeler, Harcama AI.
+6. **Ayarlar → Veri ve yedekleme** — JSON yedek, CSV, geri yükleme (birleştir veya üzerine yaz).
 
 İlk açılışta örnek harcamalar yüklenir. Kayıtlar yalnızca elle eklenen tüketimlerdir.
 

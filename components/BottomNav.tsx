@@ -5,20 +5,14 @@ import { usePathname } from "next/navigation";
 import { useExpenseSheet } from "./ExpenseSheetContext";
 
 const items = [
-  { href: "/", label: "Harcama", icon: BookIcon },
-  { href: "/ozet", label: "Analiz", icon: SummaryIcon },
-  { href: "/ayarlar", label: "Ayarlar", icon: SettingsIcon },
+  { href: "/", label: "Ana Sayfa" },
+  { href: "/liste", label: "Harcamalar" },
+  { href: "/ozet", label: "Analiz" },
+  { href: "/ayarlar", label: "Ayarlar" },
 ] as const;
 
 function isActive(pathname: string, href: string) {
-  if (href === "/") {
-    return (
-      pathname === "/" ||
-      pathname.startsWith("/liste") ||
-      pathname.startsWith("/ekle") ||
-      pathname.startsWith("/duzenle")
-    );
-  }
+  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -27,83 +21,34 @@ export function BottomNav() {
   const { openAdd } = useExpenseSheet();
 
   return (
-    <nav
-      aria-label="Ana menü"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-[color:var(--white)]/90 backdrop-blur-md"
-    >
-      <div className="relative mx-auto max-w-lg">
-        <button
-          type="button"
-          onClick={openAdd}
-          className="absolute -top-7 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-3xl font-light text-white shadow-lg"
-          aria-label="Harcama ekle"
-        >
-          +
-        </button>
-        <ul className="grid grid-cols-3 px-2 pb-[env(safe-area-inset-bottom)]">
-          {items.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex min-h-[3.75rem] flex-col items-center justify-center gap-1 px-1 py-1.5 text-[11px] tracking-tight ${
-                    active ? "font-semibold text-ink" : "font-medium text-ink-muted"
-                  }`}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <item.icon active={active} />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+    <nav aria-label="Ana menü" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-[color:var(--white)]">
+      <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-1 pb-[env(safe-area-inset-bottom)]">
+        {items.slice(0, 2).map((item) => (
+          <NavLink key={item.href} href={item.href} label={item.label} active={isActive(pathname, item.href)} />
+        ))}
+        <li className="flex justify-center">
+          <button type="button" className="nav-plus" onClick={openAdd} aria-label="Harcama ekle">
+            +
+          </button>
+        </li>
+        {items.slice(2).map((item) => (
+          <NavLink key={item.href} href={item.href} label={item.label} active={isActive(pathname, item.href)} />
+        ))}
+      </ul>
     </nav>
   );
 }
 
-function BookIcon({ active }: { active: boolean }) {
+function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6.5 4.75h8.75A2.75 2.75 0 0 1 18 7.5v11.25H8.25A1.75 1.75 0 0 1 6.5 17V4.75Z"
-        stroke="currentColor"
-        strokeWidth={active ? 1.8 : 1.5}
-      />
-      <path
-        d="M6.5 4.75A1.75 1.75 0 0 0 4.75 6.5v10.75A1.75 1.75 0 0 0 6.5 19h11.5"
-        stroke="currentColor"
-        strokeWidth={active ? 1.8 : 1.5}
-      />
-    </svg>
-  );
-}
-
-function SummaryIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 16.5V19M12 11v8M18 7v12"
-        stroke="currentColor"
-        strokeWidth={active ? 1.8 : 1.5}
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SettingsIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={active ? 1.8 : 1.5} />
-      <path
-        d="M12 4.5v1.6M12 17.9v1.6M19.5 12h-1.6M6.1 12H4.5M17.3 6.7l-1.1 1.1M7.8 16.2l-1.1 1.1M17.3 17.3l-1.1-1.1M7.8 7.8 6.7 6.7"
-        stroke="currentColor"
-        strokeWidth={active ? 1.8 : 1.5}
-        strokeLinecap="round"
-      />
-    </svg>
+    <li>
+      <Link
+        href={href}
+        className={`flex min-h-14 items-center justify-center whitespace-nowrap px-0.5 text-[10px] tracking-tight ${active ? "font-semibold text-ink" : "text-ink-muted"}`}
+        aria-current={active ? "page" : undefined}
+      >
+        {label}
+      </Link>
+    </li>
   );
 }

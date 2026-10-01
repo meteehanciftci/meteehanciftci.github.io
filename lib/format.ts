@@ -231,3 +231,21 @@ export function monthKey(ts: number) {
   const { year, month } = istanbulParts(ts);
   return `${year}-${String(month).padStart(2, "0")}`;
 }
+
+export function toExpenseDate(ts: number): string {
+  const p = istanbulParts(ts);
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:00`;
+}
+
+export function expenseInMonth(
+  expense: { occurredAt: number; expenseDate?: string },
+  year: number,
+  month: number,
+) {
+  const key = `${year}-${pad(month)}`;
+  if (expense.expenseDate && expense.expenseDate.length >= 7) {
+    return expense.expenseDate.slice(0, 7) === key;
+  }
+  const parts = istanbulParts(expense.occurredAt);
+  return parts.year === year && parts.month === month;
+}

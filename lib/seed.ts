@@ -1,4 +1,4 @@
-import { istanbulParts } from "./format";
+import { istanbulParts, toExpenseDate } from "./format";
 import { LEDGER_KIND, type AppState, type MethodType, type SpendClass } from "./types";
 
 export const SEED_CATEGORIES = [
@@ -41,10 +41,8 @@ function atMonth(offset: number, day: number, hour: number, minute = 0): number 
   const now = istanbulParts();
   const date = new Date(now.year, now.month - 1 + offset, 1);
   const maxDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  if (offset === 0 && day > now.day) {
-    return atMonth(-1, day, hour, minute);
-  }
-  const safeDay = Math.min(Math.max(day, 1), maxDay);
+  let safeDay = Math.min(Math.max(day, 1), maxDay);
+  if (offset === 0) safeDay = Math.min(safeDay, now.day);
   return Date.parse(
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(safeDay)}T${pad(hour)}:${pad(minute)}:00+03:00`,
   );
@@ -81,6 +79,9 @@ const SEED: SeedExpense[] = [
   { id: "exp-vakko", place: "Vakko", amount: 6400, categoryId: "cat-giyim", methodId: "m-yk-kk", spendClass: "luxury", offset: -1, day: 9, hour: 15 },
   { id: "exp-starbucks", place: "Starbucks", amount: 190, categoryId: "cat-yeme", methodId: "m-nakit", spendClass: "want", offset: -1, day: 14, hour: 10 },
   { id: "exp-opet-old", place: "Opet", amount: 1650, categoryId: "cat-yakit", methodId: "m-is-kk", spendClass: "need", offset: -1, day: 4, hour: 9 },
+  { id: "exp-migros-m2", place: "Migros", amount: 890, categoryId: "cat-market", methodId: "m-enpara-kk", spendClass: "need", offset: -2, day: 16, hour: 18 },
+  { id: "exp-kahve-m2", place: "Kahve Dünyası", amount: 210, categoryId: "cat-yeme", methodId: "m-nakit", spendClass: "want", offset: -2, day: 9, hour: 11 },
+  { id: "exp-migros-m3", place: "Migros", amount: 760, categoryId: "cat-market", methodId: "m-enpara-kk", spendClass: "need", offset: -3, day: 20, hour: 17 },
 ];
 
 export function createSeedState(): AppState {
@@ -95,6 +96,7 @@ export function createSeedState(): AppState {
       methodId: item.methodId,
       spendClass: item.spendClass,
       occurredAt,
+      expenseDate: toExpenseDate(occurredAt),
       createdAt: occurredAt,
       note: item.note ?? "",
       installmentCount: item.installmentCount,
@@ -108,7 +110,7 @@ export function createSeedState(): AppState {
   }
 
   return {
-    version: 3,
+    version: 4,
     categories: SEED_CATEGORIES.map((category) => ({ ...category })),
     methods: SEED_METHODS.map((method) => ({
       ...method,

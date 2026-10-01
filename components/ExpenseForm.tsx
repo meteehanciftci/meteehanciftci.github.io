@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { formatSuggestion, suggestSpendClass } from "@/lib/classifier";
-import { fromDatetimeLocal, parseAmountInput, toDatetimeLocal } from "@/lib/format";
+import { formatMoney, fromDatetimeLocal, parseAmountInput, toDatetimeLocal } from "@/lib/format";
 import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
 import { CLASS_LABEL, type Expense, type ExpenseDraft, type MethodType, type SpendClass } from "@/lib/types";
+import { Sheet } from "./Sheet";
 
 const METHOD_TYPES: { id: MethodType; label: string }[] = [
   { id: "credit", label: "Kredi Kartı" },
@@ -20,7 +21,7 @@ type Props = {
   onDelete?: () => void;
 };
 
-export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, onDelete }: Props) {
+export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }: Props) {
   const { state, places, suggestionForPlace, addMethod, addCategory } = useStore();
   const methods = useSortedMethods();
   const categories = useSortedCategories();
@@ -47,16 +48,16 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
     String(expense?.installmentCount && expense.installmentCount > 1 ? expense.installmentCount : 2),
   );
   const [showPlaces, setShowPlaces] = useState(false);
-  const [addingMethod, setAddingMethod] = useState(false);
   const [newMethodName, setNewMethodName] = useState("");
   const [newMethodCode, setNewMethodCode] = useState("");
   const [newMethodType, setNewMethodType] = useState<MethodType>("credit");
-  const [addingCategory, setAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [spendClass, setSpendClass] = useState<SpendClass>(expense?.spendClass ?? "need");
   const [classTouched, setClassTouched] = useState(Boolean(expense));
   const [error, setError] = useState("");
   const [suggested, setSuggested] = useState(false);
+  const [methodOpen, setMethodOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
 
   const selectedMethod = methods.find((method) => method.id === methodId);
   const isCredit = selectedMethod?.type === "credit";
@@ -118,12 +119,13 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
     });
   }
 
+  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const shownAmount = parsedLive > 0 ? formatMoney(parsedLive, state.settings.currency) : "₺ 0,00";
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col">
       <label className="block">
-        <span className="mb-2 block text-[13px] font-medium text-ink-muted">
-          Harcama Yeri
-        </span>
+        <span className="text-[13px] text-ink-muted">Harcama yeri</span>
         <input
           value={place}
           onChange={(event) => handlePlaceChange(event.target.value)}
@@ -132,15 +134,15 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
           autoComplete="off"
           autoFocus={!expense}
           placeholder="Migros"
-          className="field"
+          className="plain"
         />
         {showPlaces && placeOptions.length > 0 ? (
-          <ul className="mt-2 overflow-hidden rounded-2xl border border-line bg-white dark:bg-[#1c1c1e]">
+          <ul className="mb-2">
             {placeOptions.map((item) => (
               <li key={item}>
                 <button
                   type="button"
-                  className="w-full px-4 py-2.5 text-left text-[15px]"
+                  className="row-link"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     handlePlaceChange(item);
@@ -155,261 +157,217 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
         ) : null}
       </label>
 
-      <label className="block">
-        <span className="mb-2 block text-[13px] font-medium text-ink-muted">Tutar</span>
-        <div className="relative">
-          <input
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            onFocus={(event) => event.currentTarget.select()}
-            inputMode="decimal"
-            enterKeyHint="next"
-            placeholder="1.250"
-            className="field pr-12 tabular-nums"
-          />
-          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-ink-muted">
-            ₺
-          </span>
-        </div>
+      <label className="mt-6 block">
+        <span className="text-[13px] text-ink-muted">Tutar</span>
+        <input
+          value={amount}
+          onChange={(event) => setAmount(event.target.value)}
+          onFocus={(event) => event.currentTarget.select()}
+          inputMode="decimal"
+          placeholder="0,00"
+          aria-label="Tutar"
+          className="amount-input"
+        />
+        <p className="text-[13px] text-ink-muted">{shownAmount}</p>
       </label>
 
-      <fieldset>
-        <legend className="mb-2 text-[13px] font-medium text-ink-muted">
-          Ödeme Yöntemi
-          {suggested ? <span className="ml-2 font-normal text-accent">Önerildi</span> : null}
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {methods.map((method) => (
-            <button
-              key={method.id}
-              type="button"
-              onClick={() => {
-                setMethodId(method.id);
-                setSuggested(false);
-                if (method.type !== "credit") setInstallmentsOn(false);
-              }}
-              className={method.id === methodId ? "chip chip-active" : "chip"}
-            >
-              {method.code}
-            </button>
-          ))}
-          <button type="button" className="chip" onClick={() => setAddingMethod((open) => !open)}>
-            + Yeni
+      <div className="mt-6 grid grid-cols-3 gap-2">
+        {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={spendClass === id ? `chip chip-active class-${id}` : `chip class-${id}`}
+            onClick={() => {
+              setSpendClass(id);
+              setClassTouched(true);
+            }}
+          >
+            {CLASS_LABEL[id]}
           </button>
-        </div>
-        {selectedMethod ? (
-          <p className="mt-2 text-[13px] text-ink-muted">{selectedMethod.name}</p>
-        ) : null}
-        {addingMethod ? (
-          <div className="mt-3 space-y-2">
-            <input
-              className="field"
-              value={newMethodName}
-              onChange={(event) => setNewMethodName(event.target.value)}
-              placeholder="Enpara Kredi Kartı"
-            />
-            <div className="flex gap-2">
-              <input
-                className="field"
-                value={newMethodCode}
-                onChange={(event) => setNewMethodCode(event.target.value.toUpperCase())}
-                placeholder="EPK"
-              />
-              <select
-                className="field w-auto"
-                value={newMethodType}
-                onChange={(event) => setNewMethodType(event.target.value as MethodType)}
-              >
-                {METHOD_TYPES.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        ))}
+      </div>
+      {suggestion ? (
+        <div className="mt-3">
+          <p className="text-[13px] text-ink-muted">{formatSuggestion(suggestion)}</p>
+          {suggestion.warning ? <p className="mt-1 text-[13px]">{suggestion.warning}</p> : null}
+          {suggestion.spendClass !== spendClass ? (
             <button
               type="button"
-              className="btn-secondary"
+              className="mt-2 text-[13px] font-medium text-accent"
               onClick={() => {
-                const created = addMethod({
-                  name: newMethodName,
-                  code: newMethodCode,
-                  type: newMethodType,
-                });
-                if (!created) {
-                  setError("Yöntem adı veya kod kullanılıyor.");
-                  return;
-                }
-                setMethodId(created.id);
-                setAddingMethod(false);
-                setNewMethodName("");
-                setNewMethodCode("");
-              }}
-            >
-              Yöntemi ekle
-            </button>
-          </div>
-        ) : null}
-      </fieldset>
-
-      {isCredit ? (
-        <fieldset>
-          <legend className="mb-2 text-[13px] font-medium text-ink-muted">Taksitli mi?</legend>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className={!installmentsOn ? "chip chip-active" : "chip"}
-              onClick={() => setInstallmentsOn(false)}
-            >
-              Hayır
-            </button>
-            <button
-              type="button"
-              className={installmentsOn ? "chip chip-active" : "chip"}
-              onClick={() => setInstallmentsOn(true)}
-            >
-              Evet
-            </button>
-          </div>
-          {installmentsOn ? (
-            <label className="mt-3 block">
-              <span className="mb-2 block text-[13px] text-ink-muted">Taksit sayısı</span>
-              <input
-                className="field tabular-nums"
-                inputMode="numeric"
-                value={installmentCount}
-                onChange={(event) => setInstallmentCount(event.target.value)}
-                placeholder="6"
-              />
-            </label>
-          ) : null}
-        </fieldset>
-      ) : null}
-
-      <fieldset>
-        <legend className="mb-2 text-[13px] font-medium text-ink-muted">Harcama sınıfı</legend>
-        <div className="grid grid-cols-3 gap-2">
-          {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
-            <button
-              key={id}
-              type="button"
-              className={spendClass === id ? `chip chip-active class-${id}` : `chip class-${id}`}
-              onClick={() => {
-                setSpendClass(id);
+                setSpendClass(suggestion.spendClass);
                 setClassTouched(true);
               }}
             >
-              {CLASS_LABEL[id]}
+              {CLASS_LABEL[suggestion.spendClass]} olarak kullan
             </button>
-          ))}
+          ) : null}
         </div>
-        {suggestion ? (
-          <div className="mt-3 rounded-2xl border border-line bg-[color:var(--white)] px-3 py-3">
-            <p className="text-[13px] text-ink-muted">{formatSuggestion(suggestion)}</p>
-            {suggestion.warning ? (
-              <p className="mt-1 text-[13px] text-ink">{suggestion.warning}</p>
-            ) : null}
-            {suggestion.spendClass !== spendClass ? (
-              <button
-                type="button"
-                className="mt-2 text-[13px] font-medium text-accent"
-                onClick={() => {
-                  setSpendClass(suggestion.spendClass);
-                  setClassTouched(true);
-                }}
-              >
-                {CLASS_LABEL[suggestion.spendClass]} olarak kullan
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </fieldset>
+      ) : null}
 
-      <fieldset>
-        <legend className="mb-2 text-[13px] font-medium text-ink-muted">
-          Kategori
-          {suggested ? <span className="ml-2 font-normal text-accent">Önerildi</span> : null}
-        </legend>
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              onClick={() => {
-                setCategoryId(category.id);
-                setSuggested(false);
-              }}
-              className={category.id === categoryId ? "chip chip-active" : "chip"}
-            >
-              {category.name}
-            </button>
-          ))}
-          <button type="button" className="chip" onClick={() => setAddingCategory((open) => !open)}>
-            + Yeni Kategori
-          </button>
-        </div>
-        {addingCategory ? (
-          <div className="mt-3 flex gap-2">
-            <input
-              className="field"
-              value={newCategory}
-              onChange={(event) => setNewCategory(event.target.value)}
-              placeholder="Kategori adı"
-            />
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => {
-                const created = addCategory(newCategory);
-                if (!created) return;
-                setCategoryId(created.id);
-                setNewCategory("");
-                setAddingCategory(false);
-              }}
-            >
-              Ekle
-            </button>
-          </div>
-        ) : null}
-      </fieldset>
-
-      <label className="block">
-        <span className="mb-2 block text-[13px] font-medium text-ink-muted">Tarih</span>
-        <input
-          type="datetime-local"
-          className="field"
-          value={occurredAt}
-          onFocus={() => {
-            if (!occurredAt) setOccurredAt(toDatetimeLocal(Date.now()));
-          }}
-          onChange={(event) => setOccurredAt(event.target.value)}
-        />
+      <button type="button" className="row-link mt-4" onClick={() => setCategoryOpen(true)}>
+        <span>
+          <span className="block text-[12px] text-ink-muted">Kategori{suggested ? " · önerildi" : ""}</span>
+          {selectedCategory?.name ?? "Seç"}
+        </span>
+        <span className="text-ink-muted">›</span>
+      </button>
+      <button type="button" className="row-link" onClick={() => setMethodOpen(true)}>
+        <span>
+          <span className="block text-[12px] text-ink-muted">Ödeme yöntemi</span>
+          {selectedMethod ? `${selectedMethod.code} · ${selectedMethod.name}` : "Seç"}
+        </span>
+        <span className="text-ink-muted">›</span>
+      </button>
+      <label className="row-link">
+        <span>
+          <span className="block text-[12px] text-ink-muted">Tarih</span>
+          <input
+            type="datetime-local"
+            className="plain !px-0 !py-0"
+            value={occurredAt}
+            onFocus={() => {
+              if (!occurredAt) setOccurredAt(toDatetimeLocal(Date.now()));
+            }}
+            onChange={(event) => setOccurredAt(event.target.value)}
+          />
+        </span>
       </label>
-
-      <label className="block">
-        <span className="mb-2 block text-[13px] font-medium text-ink-muted">Not</span>
+      <label className="block py-3">
+        <span className="text-[12px] text-ink-muted">Not</span>
         <input
-          className="field"
+          className="plain"
           value={note}
           onChange={(event) => setNote(event.target.value)}
           placeholder="İsteğe bağlı"
         />
       </label>
 
+      {isCredit ? (
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[14px]">Taksit</span>
+          <button
+            type="button"
+            className={installmentsOn ? "chip chip-active" : "chip"}
+            onClick={() => setInstallmentsOn((on) => !on)}
+          >
+            {installmentsOn ? `${installmentCount} taksit` : "Yok"}
+          </button>
+        </div>
+      ) : null}
+      {isCredit && installmentsOn ? (
+        <input
+          className="plain tabular-nums"
+          inputMode="numeric"
+          value={installmentCount}
+          onChange={(event) => setInstallmentCount(event.target.value)}
+          aria-label="Taksit sayısı"
+        />
+      ) : null}
+
       {error ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="mt-3 text-sm text-red-600" role="alert">
           {error}
         </p>
       ) : null}
 
-      <button type="submit" className="btn-primary">
+      <button type="submit" className="btn-primary mt-8">
         {submitLabel}
       </button>
-      {onDelete ? (
-        <button type="button" className="btn-danger" onClick={onDelete}>
-          Sil
-        </button>
-      ) : null}
+
+      <Sheet open={categoryOpen} title="Kategori" onClose={() => setCategoryOpen(false)}>
+        <ul>
+          {categories.map((category) => (
+            <li key={category.id}>
+              <button
+                type="button"
+                className="row-link"
+                onClick={() => {
+                  setCategoryId(category.id);
+                  setSuggested(false);
+                  setCategoryOpen(false);
+                }}
+              >
+                <span>{category.name}</span>
+                {category.id === categoryId ? <span>✓</span> : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 flex gap-2">
+          <input
+            className="plain"
+            value={newCategory}
+            onChange={(event) => setNewCategory(event.target.value)}
+            placeholder="Yeni kategori"
+          />
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              const created = addCategory(newCategory);
+              if (!created) return;
+              setCategoryId(created.id);
+              setNewCategory("");
+              setCategoryOpen(false);
+            }}
+          >
+            Ekle
+          </button>
+        </div>
+      </Sheet>
+
+      <Sheet open={methodOpen} title="Ödeme yöntemi" onClose={() => setMethodOpen(false)}>
+        <ul>
+          {methods.map((method) => (
+            <li key={method.id}>
+              <button
+                type="button"
+                className="row-link"
+                onClick={() => {
+                  setMethodId(method.id);
+                  if (method.type !== "credit") setInstallmentsOn(false);
+                  setMethodOpen(false);
+                }}
+              >
+                <span>
+                  {method.code}
+                  <span className="ml-2 text-ink-muted">{method.name}</span>
+                </span>
+                {method.id === methodId ? <span>✓</span> : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 space-y-2">
+          <input className="plain" value={newMethodName} onChange={(event) => setNewMethodName(event.target.value)} placeholder="Yöntem adı" />
+          <div className="flex gap-2">
+            <input className="plain" value={newMethodCode} onChange={(event) => setNewMethodCode(event.target.value.toUpperCase())} placeholder="Kod" />
+            <select className="plain" value={newMethodType} onChange={(event) => setNewMethodType(event.target.value as MethodType)}>
+              {METHOD_TYPES.map((type) => (
+                <option key={type.id} value={type.id}>{type.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              const created = addMethod({ name: newMethodName, code: newMethodCode, type: newMethodType });
+              if (!created) {
+                setError("Yöntem adı veya kod kullanılıyor.");
+                return;
+              }
+              setMethodId(created.id);
+              setNewMethodName("");
+              setNewMethodCode("");
+              setMethodOpen(false);
+            }}
+          >
+            Yöntemi ekle
+          </button>
+        </div>
+      </Sheet>
     </form>
   );
 }

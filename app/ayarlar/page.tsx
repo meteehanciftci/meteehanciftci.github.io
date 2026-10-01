@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { backupJson, downloadText, exportCsv } from "@/lib/export";
-import { loadState } from "@/lib/storage";
+import { useState } from "react";
+import { BackupPanel } from "@/components/BackupPanel";
 import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
 import type { CurrencyCode, MethodType, ThemePreference } from "@/lib/types";
 
@@ -23,7 +22,6 @@ export default function SettingsPage() {
     updateMethod,
     deleteMethod,
     updateSettings,
-    importBackup,
   } = useStore();
   const methods = useSortedMethods();
   const categories = useSortedCategories();
@@ -31,12 +29,12 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
   const [newType, setNewType] = useState<MethodType>("credit");
-  const fileRef = useRef<HTMLInputElement>(null);
 
   return (
     <main className="px-5 pt-8 pb-8">
       <p className="text-[13px] font-medium text-ink-muted">Ayarlar</p>
       <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Defter</h1>
+      <BackupPanel />
 
       <section className="mt-10">
         <h2 className="mb-3 text-[15px] font-semibold">Ödeme yöntemleri</h2>
@@ -268,55 +266,10 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="mb-3 text-[15px] font-semibold">Verileri dışa aktar</h2>
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() => downloadText("harcama-defteri.csv", exportCsv(state), "text/csv;charset=utf-8")}
-          >
-            CSV indir
-          </button>
-        </div>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="mb-3 text-[15px] font-semibold">Yedekleme</h2>
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            className="btn-secondary w-full"
-            onClick={() =>
-              downloadText("harcama-defteri-yedek.json", backupJson(state), "application/json")
-            }
-          >
-            JSON yedek al
-          </button>
-          <button type="button" className="btn-secondary w-full" onClick={() => fileRef.current?.click()}>
-            Yedekten geri yükle
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
-              const text = await file.text();
-              window.localStorage.setItem("harcama-defteri-v2", text);
-              importBackup(loadState());
-              event.target.value = "";
-            }}
-          />
-        </div>
-      </section>
-
-      <section className="mt-12">
         <h2 className="mb-2 text-[15px] font-semibold">Uygulama bilgileri</h2>
         <p className="text-sm leading-6 text-ink-muted">
-          Harcama Defteri 1.2 — AI destekli kişisel harcama defteri. Yalnızca elle eklenen tüketim
-          kayıtları. Analiz cihaz üzerinde çalışır.
+          Harcama Defteri 1.3 — AI destekli kişisel harcama defteri. Kayıtlar cihazda kalır.
+          Ay değiştirmek veriyi silmez.
         </p>
       </section>
     </main>

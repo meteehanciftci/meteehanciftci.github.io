@@ -1,4 +1,5 @@
 import { inferLegacyClass } from "./classifier";
+import { toExpenseDate } from "./format";
 import { createSeedState, SEED_CATEGORIES } from "./seed";
 import { LEDGER_KIND, type AppState, type MethodType, type PaymentMethod, type SpendClass } from "./types";
 
@@ -42,7 +43,7 @@ function asClass(value: unknown): SpendClass | null {
   return null;
 }
 
-function migrateUnknown(raw: unknown): AppState | null {
+export function migrateUnknown(raw: unknown): AppState | null {
   if (!raw || typeof raw !== "object") return null;
   const data = raw as Record<string, unknown>;
   if (!Array.isArray(data.categories) || !Array.isArray(data.methods) || !Array.isArray(data.expenses)) {
@@ -76,7 +77,7 @@ function migrateUnknown(raw: unknown): AppState | null {
   );
 
   const draft: AppState = {
-    version: 3,
+    version: 4,
     categories,
     methods,
     expenses: [],
@@ -94,6 +95,7 @@ function migrateUnknown(raw: unknown): AppState | null {
       const createdAt = Number(expense.createdAt) || Date.now();
       const kind = expense.kind === LEDGER_KIND ? LEDGER_KIND : LEDGER_KIND;
       if (expense.kind && expense.kind !== LEDGER_KIND) return null;
+      const when = resolveWhen(expense, createdAt);
       const partial = {
         id: String(expense.id ?? `exp-${index}`),
         kind,
@@ -101,7 +103,8 @@ function migrateUnknown(raw: unknown): AppState | null {
         amount: Number(expense.amount) || 0,
         categoryId: String(expense.categoryId ?? categories[0]?.id ?? ""),
         methodId: String(expense.methodId ?? methods[0]?.id ?? ""),
-        occurredAt: Number(expense.occurredAt) || createdAt,
+        occurredAt: when.occurredAt,
+        expenseDate: when.expenseDate,
         createdAt,
         note: String(expense.note ?? ""),
         installmentCount:
@@ -122,7 +125,7 @@ function migrateUnknown(raw: unknown): AppState | null {
   const settingsRaw = (data.settings as Record<string, unknown>) ?? {};
   const goalsRaw = (settingsRaw.goals as Record<string, unknown>) ?? {};
   return {
-    version: 3,
+    version: 4,
     categories,
     methods,
     expenses,
@@ -150,17 +153,63 @@ function migrateUnknown(raw: unknown): AppState | null {
   };
 }
 
+function resolveWhen(expense: Record<string, unknown>, createdAt: number) {
+  const rawDate =
+    typeof expense.expenseDate === "string"
+      ? expense.expenseDate
+      : typeof expense.date === "string"
+        ? expense.date
+        : "";
+  if (rawDate) {
+    const iso = rawDate.length === 10 ? `${rawDate}T12:00:00` : rawDate.slice(0, 19);
+    const occurredAt = Date.parse(`${iso}+03:00`);
+    if (Number.isFinite(occurredAt)) return { occurredAt, expenseDate: iso };
+  }
+  const occurredAt = Number(expense.occurredAt) || createdAt;
+  return { occurredAt, expenseDate: toExpenseDate(occurredAt) };
+}
+
+export const META_KEY = "harcama-defteri-meta";
+const SNAP_KEY = "harcama-snapshots";
+
+export type PersistedEnvelope = { savedAt: number; state: AppState };
+export type Snapshot = { at: number; label: string; state: AppState };
+
+let savedAtMemory = 0;
+
+export function currentSavedAt() {
+  return savedAtMemory;
+}
+
+function readMeta(): number {
+  try {
+    const raw = window.localStorage.getItem(META_KEY);
+    const parsed = raw ? (JSON.parse(raw) as { savedAt?: number }) : null;
+    return Number(parsed?.savedAt) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeMeta(savedAt: number) {
+  window.localStorage.setItem(META_KEY, JSON.stringify({ savedAt }));
+}
+
 export function loadState(): AppState {
   if (typeof window === "undefined") return createSeedState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_KEY);
     if (!raw) {
       const seeded = createSeedState();
+      savedAtMemory = Date.now();
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+      writeMeta(savedAtMemory);
+      void persistEnvelope({ savedAt: savedAtMemory, state: seeded });
       return seeded;
     }
     const migrated = migrateUnknown(JSON.parse(raw));
     if (!migrated) return createSeedState();
+    savedAtMemory = readMeta() || 1;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
     return migrated;
   } catch {
@@ -169,5 +218,104 @@ export function loadState(): AppState {
 }
 
 export function saveState(state: AppState) {
+  const savedAt = Date.now();
+  savedAtMemory = savedAt;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  writeMeta(savedAt);
+  void persistEnvelope({ savedAt, state });
+  void maybeSnapshot(state, savedAt);
+}
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("harcama-defteri", 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function idbGet<T>(key: string): Promise<T | null> {
+  return openDb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction("kv", "readonly");
+        const request = tx.objectStore("kv").get(key);
+        request.onsuccess = () => resolve((request.result as T) ?? null);
+        request.onerror = () => reject(request.error);
+      }),
+  );
+}
+
+function idbSet(key: string, value: unknown): Promise<void> {
+  return openDb().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      }),
+  );
+}
+
+async function persistEnvelope(envelope: PersistedEnvelope) {
+  try {
+    await idbSet("main", envelope);
+  } catch {
+    /* localStorage already holds the ledger */
+  }
+}
+
+export async function pullNewerFromIdb(): Promise<AppState | null> {
+  if (typeof indexedDB === "undefined") return null;
+  try {
+    const envelope = await idbGet<PersistedEnvelope>("main");
+    if (!envelope?.state || envelope.savedAt <= savedAtMemory) return null;
+    const migrated = migrateUnknown(envelope.state);
+    if (!migrated) return null;
+    savedAtMemory = envelope.savedAt;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    writeMeta(envelope.savedAt);
+    return migrated;
+  } catch {
+    return null;
+  }
+}
+
+function snapshotLabel(at: number) {
+  return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(at));
+}
+
+async function maybeSnapshot(state: AppState, at: number) {
+  try {
+    const snaps = (await idbGet<Snapshot[]>(SNAP_KEY)) ?? readLocalSnaps();
+    const day = toExpenseDate(at).slice(0, 10);
+    if (snaps.some((snap) => toExpenseDate(snap.at).slice(0, 10) === day)) return;
+    const next = [{ at, label: snapshotLabel(at), state }, ...snaps].slice(0, 4);
+    window.localStorage.setItem(SNAP_KEY, JSON.stringify(next.map((snap) => ({ at: snap.at, label: snap.label }))));
+    await idbSet(SNAP_KEY, next);
+  } catch {
+    /* snapshots are best-effort */
+  }
+}
+
+function readLocalSnaps(): Snapshot[] {
+  return [];
+}
+
+export async function listSnapshots(): Promise<Snapshot[]> {
+  try {
+    const snaps = await idbGet<Snapshot[]>(SNAP_KEY);
+    return snaps ?? [];
+  } catch {
+    return [];
+  }
 }

@@ -1,12 +1,16 @@
 "use client";
 
-import { startOfIstanbulDay, formatDayHeading } from "@/lib/format";
+import { formatDayHeading, startOfIstanbulDay } from "@/lib/format";
 import type { Expense } from "@/lib/types";
-import { ExpenseRow } from "./ExpenseRow";
-import { useStore } from "@/lib/store";
+import { ExpenseSlip } from "./ExpenseSlip";
 
-export function GroupedExpenseList({ expenses }: { expenses: Expense[] }) {
-  const { state } = useStore();
+export function GroupedExpenseList({
+  expenses,
+  empty,
+}: {
+  expenses: Expense[];
+  empty?: string;
+}) {
   const groups: { key: number; items: Expense[] }[] = [];
   for (const expense of expenses) {
     const key = startOfIstanbulDay(expense.occurredAt);
@@ -16,24 +20,20 @@ export function GroupedExpenseList({ expenses }: { expenses: Expense[] }) {
   }
 
   if (expenses.length === 0) {
-    return <p className="py-10 text-sm text-ink-muted">Eşleşen harcama yok.</p>;
+    return <p className="py-16 text-center text-[15px] text-ink-muted">{empty ?? "Bu ay için harcama kaydı bulunmuyor."}</p>;
   }
 
   return (
-    <div className="pb-4">
+    <div>
       {groups.map((group) => (
-        <section key={group.key} className="mt-6 first:mt-2">
-          <h2 className="text-[12px] font-semibold tracking-[0.08em] text-ink-muted">
+        <section key={group.key} className="mt-6">
+          <h2 className="px-1 text-[12px] font-medium uppercase tracking-[0.14em] text-ink-muted">
             {formatDayHeading(group.key)}
           </h2>
-          <ul className="divide-y divide-line">
+          <ul className="mt-1">
             {group.items.map((expense) => (
               <li key={expense.id}>
-                <ExpenseRow
-                  expense={expense}
-                  category={state.categories.find((item) => item.id === expense.categoryId)}
-                  method={state.methods.find((item) => item.id === expense.methodId)}
-                />
+                <ExpenseSlip expense={expense} />
               </li>
             ))}
           </ul>

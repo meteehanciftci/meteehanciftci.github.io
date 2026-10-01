@@ -1,4 +1,4 @@
-import { istanbulParts, istanbulWeekday, inPeriod, monthKey, shiftMonth, startOfIstanbulDay } from "./format";
+import { expenseInMonth, istanbulParts, istanbulWeekday, inPeriod, monthKey, shiftMonth, startOfIstanbulDay } from "./format";
 import type { AppState, Expense, Period, SpendClass } from "./types";
 
 export const CLASS_ORDER: SpendClass[] = ["need", "want", "luxury"];
@@ -23,10 +23,7 @@ export function filterByPeriod(expenses: Expense[], period: Period, now = Date.n
 }
 
 export function monthExpenses(expenses: Expense[], year: number, month: number) {
-  return expenses.filter((expense) => {
-    const p = istanbulParts(expense.occurredAt);
-    return p.year === year && p.month === month;
-  });
+  return expenses.filter((expense) => expenseInMonth(expense, year, month));
 }
 
 export function monthlyTrend(expenses: Expense[], months = 6, now = Date.now()) {

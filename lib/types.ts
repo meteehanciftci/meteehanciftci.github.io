@@ -58,6 +58,7 @@ export type Expense = {
   spendClass: SpendClass;
   aiSuggestedClass?: SpendClass;
   occurredAt: number;
+  expenseDate: string;
   createdAt: number;
   note: string;
   installmentCount?: number;
@@ -82,7 +83,7 @@ export type Settings = {
 };
 
 export type AppState = {
-  version: 3;
+  version: 4;
   categories: Category[];
   methods: PaymentMethod[];
   expenses: Expense[];

@@ -1,93 +1,63 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ClassShare } from "@/components/ClassShare";
-import { PeriodPills } from "@/components/PeriodPills";
+import { MonthPicker } from "@/components/MonthPicker";
 import { GroupedExpenseList } from "@/components/GroupedExpenseList";
 import { useExpenseSheet } from "@/components/ExpenseSheetContext";
-import { categoryBreakdown, classTotals, dailySeries, filterByPeriod, previousPeriod } from "@/lib/analytics";
-import { formatMoney, formatMonthTitle, istanbulParts } from "@/lib/format";
+import { classTotals, dailySeries, monthExpenses } from "@/lib/analytics";
+import { formatMoney, shiftMonth } from "@/lib/format";
 import { shortInsights } from "@/lib/insights";
 import { useStore } from "@/lib/store";
-import type { Period, SpendClass } from "@/lib/types";
+import { useViewMonth } from "@/lib/view-month";
+import { CLASS_LABEL, type SpendClass } from "@/lib/types";
 
 export default function HomePage() {
   const { state, ledger } = useStore();
   const { openAdd } = useExpenseSheet();
-  const router = useRouter();
-  const [period, setPeriod] = useState<Period>("this-month");
-  const now = istanbulParts();
+  const view = useViewMonth();
   const currency = state.settings.currency;
-
-  const current = useMemo(() => filterByPeriod(ledger, period), [ledger, period]);
-  const previous = useMemo(() => previousPeriod(ledger, period), [ledger, period]);
+  const current = useMemo(
+    () => (view.all ? ledger : monthExpenses(ledger, view.year, view.month)),
+    [ledger, view],
+  );
+  const previous = useMemo(() => {
+    if (view.all) return [];
+    const prev = shiftMonth(view.year, view.month, -1);
+    return monthExpenses(ledger, prev.year, prev.month);
+  }, [ledger, view]);
   const summary = classTotals(current);
-  const cats = categoryBreakdown(state, current, previous).slice(0, 5);
-  const maxCat = Math.max(1, ...cats.map((row) => row.amount));
   const trend = dailySeries(current);
   const maxDay = Math.max(1, ...trend.map(([, value]) => value));
-  const insights = state.settings.aiEnabled ? shortInsights(state, current, previous, currency) : [];
-  const recent = [...ledger].sort((a, b) => b.occurredAt - a.occurredAt).slice(0, 5);
-  const goals = state.settings.goals;
-
-  function openClass(id: SpendClass) {
-    router.push(`/liste?class=${id}`);
-  }
+  const insight = state.settings.aiEnabled ? shortInsights(state, current, previous, currency)[0] : "";
+  const recent = [...current].sort((a, b) => b.occurredAt - a.occurredAt).slice(0, 5);
 
   return (
-    <main className="px-5 pt-8">
-      <p className="text-[13px] font-medium tracking-wide text-ink-muted">Harcama Defteri</p>
-      <h1 className="mt-2 text-[28px] font-semibold tracking-tight">
-        {formatMonthTitle(now.year, now.month)}
-      </h1>
-      <p className="mt-5 text-[40px] font-semibold leading-none tracking-tight">
+    <main className="px-5 pt-6">
+      <MonthPicker />
+      <p className="mt-8 text-[40px] font-semibold leading-none tracking-tight">
         {formatMoney(summary.total, currency)}
       </p>
-      <p className="mt-2 text-sm text-ink-muted">Toplam harcama</p>
+      <p className="mt-2 text-[14px] text-ink-muted">{view.all ? "Tüm harcamalar" : "Toplam harcama"}</p>
+      <p className="mt-4 text-[15px]">
+        {(["need", "want", "luxury"] as SpendClass[]).map((id, index) => (
+          <span key={id}>
+            {index ? "  ·  " : ""}
+            {CLASS_LABEL[id]} %{Math.round(summary.pct[id])}
+          </span>
+        ))}
+      </p>
 
-      <div className="mt-6">
-        <PeriodPills value={period} onChange={setPeriod} />
-      </div>
-
-      <section className="mt-6">
-        <ClassShare
-          pct={summary.pct}
-          amounts={summary.amounts}
-          currencyText={(n) => formatMoney(n, currency)}
-          onSelect={openClass}
-        />
-        {goals.wantMaxPct != null || goals.luxuryMaxPct != null ? (
-          <div className="mt-4 space-y-1 text-[13px] text-ink-muted">
-            {goals.wantMaxPct != null ? (
-              <p>
-                İstek hedefi: %{goals.wantMaxPct} · Gerçekleşen: %{Math.round(summary.pct.want)}
-              </p>
-            ) : null}
-            {goals.luxuryMaxPct != null ? (
-              <p>
-                Lüks hedefi: %{goals.luxuryMaxPct} · Gerçekleşen: %{Math.round(summary.pct.luxury)}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
-
-      <button type="button" className="btn-primary mt-8" onClick={openAdd}>
-        + Harcama Ekle
-      </button>
-
-      <section className="mt-10">
-        <h2 className="mb-3 text-[15px] font-semibold">Harcama trendi</h2>
+      <section className="mt-8">
+        <h2 className="text-[13px] text-ink-muted">Harcama trendi</h2>
         {trend.length === 0 ? (
-          <p className="text-sm text-ink-muted">Bu aralıkta kayıt yok.</p>
+          <p className="mt-6 text-[15px] text-ink-muted">Bu dönem için harcama kaydı bulunmuyor.</p>
         ) : (
-          <div className="flex h-24 items-end gap-1 overflow-x-auto">
+          <div className="mt-4 flex h-16 items-end gap-1">
             {trend.map(([day, value]) => (
               <div
                 key={day}
-                className="w-2 shrink-0 rounded-t-md bg-ink/80"
+                className="w-1.5 rounded-full bg-ink/80"
                 style={{ height: `${Math.max(8, (value / maxDay) * 100)}%` }}
               />
             ))}
@@ -95,49 +65,30 @@ export default function HomePage() {
         )}
       </section>
 
-      <section className="mt-10">
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-[15px] font-semibold">Kategori dağılımı</h2>
-          <Link href="/ozet" className="text-[13px] text-ink-muted">
-            Analiz
-          </Link>
-        </div>
-        {cats.length === 0 ? (
-          <p className="text-sm text-ink-muted">Veri yok.</p>
-        ) : (
-          <ul className="space-y-3">
-            {cats.map((row) => (
-              <li key={row.id}>
-                <button type="button" className="w-full text-left" onClick={() => router.push(`/liste?cat=${row.id}`)}>
-                  <div className="mb-1 flex justify-between text-[14px]">
-                    <span>{row.name}</span>
-                    <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
-                  </div>
-                  <div className="bar">
-                    <span style={{ width: `${Math.round((row.amount / maxCat) * 100)}%` }} />
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {insights[0] ? (
-        <section className="mt-10 rounded-3xl border border-line bg-[color:var(--white)] p-4">
-          <p className="text-[12px] font-medium uppercase tracking-wide text-ink-muted">AI içgörüsü</p>
-          <p className="mt-2 text-[15px] leading-relaxed">{insights[0]}</p>
+      {insight ? (
+        <section className="mt-8">
+          <h2 className="text-[13px] text-ink-muted">AI içgörüsü</h2>
+          <p className="mt-2 text-[16px] leading-relaxed">{insight}</p>
         </section>
       ) : null}
 
-      <section className="mt-10">
+      <section className="mt-8">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-[15px] font-semibold">Son harcamalar</h2>
-          <Link href="/liste" className="text-[13px] font-medium text-ink-muted">
+          <h2 className="text-[13px] text-ink-muted">Son işlemler</h2>
+          <Link href="/liste" className="text-[13px] text-ink-muted">
             Tümü
           </Link>
         </div>
-        <GroupedExpenseList expenses={recent} />
+        {recent.length === 0 ? (
+          <div className="py-8 text-center">
+            <p className="text-[15px] text-ink-muted">Bu ay için harcama kaydı bulunmuyor.</p>
+            <button type="button" className="mt-4 text-[15px] font-semibold" onClick={openAdd}>
+              Harcama Ekle
+            </button>
+          </div>
+        ) : (
+          <GroupedExpenseList expenses={recent} />
+        )}
       </section>
     </main>
   );

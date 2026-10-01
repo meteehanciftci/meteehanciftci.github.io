@@ -7,11 +7,11 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { inDateFilter } from "./format";
+import { inDateFilter, toExpenseDate } from "./format";
 import { createId } from "./ids";
 import { ledgerExpenses } from "./export";
 import { createSeedState } from "./seed";
-import { loadState, saveState } from "./storage";
+import { loadState, pullNewerFromIdb, saveState } from "./storage";
 import { LEDGER_KIND, type AppState, type Category, type Expense, type ExpenseDraft, type ExpenseFilters, type MethodType, type PaymentMethod, type Settings } from "./types";
 
 type StoreValue = {
@@ -45,8 +45,19 @@ function emit() {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
+  if (!pulling && typeof window !== "undefined") {
+    pulling = true;
+    void pullNewerFromIdb().then((next) => {
+      pulling = false;
+      if (!next) return;
+      memory = next;
+      emit();
+    });
+  }
   return () => listeners.delete(listener);
 }
+
+let pulling = false;
 
 function getSnapshot() {
   if (!memory) memory = loadState();
@@ -103,6 +114,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         spendClass: input.spendClass,
         aiSuggestedClass: input.aiSuggestedClass,
         occurredAt: input.occurredAt,
+        expenseDate: toExpenseDate(input.occurredAt),
         createdAt: Date.now(),
         note: input.note.trim(),
         installmentCount:
@@ -132,6 +144,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: LEDGER_KIND,
         place: patch.place ? normalizeName(patch.place) : existing.place,
         note: patch.note != null ? patch.note.trim() : existing.note,
+        occurredAt: patch.occurredAt ?? existing.occurredAt,
+        expenseDate: toExpenseDate(patch.occurredAt ?? existing.occurredAt),
         installmentCount:
           patch.installmentCount && patch.installmentCount > 1
             ? patch.installmentCount

@@ -2,315 +2,212 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ClassShare } from "@/components/ClassShare";
 import { Heatmap } from "@/components/Heatmap";
-import { PeriodPills } from "@/components/PeriodPills";
+import { MonthPicker } from "@/components/MonthPicker";
 import {
   anomalies,
   balanceScore,
   categoryBreakdown,
   classTotals,
   compareMonths,
-  filterByPeriod,
   heatmapDays,
   methodBreakdown,
+  monthExpenses,
   monthThirds,
   monthlyTrend,
   placeBreakdown,
-  previousPeriod,
   simulate,
   weekdayBreakdown,
 } from "@/lib/analytics";
-import { formatMoney, formatMonthTitle, istanbulParts } from "@/lib/format";
+import { formatMoney } from "@/lib/format";
 import { AI_QUESTIONS, answerQuestion, shortInsights } from "@/lib/insights";
 import { useStore } from "@/lib/store";
-import { CLASS_LABEL, type Period, type SpendClass } from "@/lib/types";
+import { useViewMonth } from "@/lib/view-month";
+import { CLASS_LABEL, type SpendClass } from "@/lib/types";
 
-const SECTIONS = [
-  { id: "genel", label: "Genel" },
-  { id: "sinif", label: "Sınıflar" },
-  { id: "kategori", label: "Kategoriler" },
-  { id: "isletme", label: "İşletmeler" },
-  { id: "zaman", label: "Zaman" },
-  { id: "odeme", label: "Ödeme" },
-  { id: "ai", label: "Harcama AI" },
-] as const;
+const TABS = ["Genel", "Sınıflar", "Kategoriler", "Zaman", "İşletmeler"] as const;
 
 export default function SummaryPage() {
   const { state, ledger } = useStore();
+  const view = useViewMonth();
   const router = useRouter();
-  const now = istanbulParts();
-  const [period, setPeriod] = useState<Period>("this-month");
-  const [section, setSection] = useState<(typeof SECTIONS)[number]["id"]>("genel");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("Genel");
   const [answer, setAnswer] = useState("");
   const currency = state.settings.currency;
-
-  const current = useMemo(() => filterByPeriod(ledger, period), [ledger, period]);
-  const previous = useMemo(() => previousPeriod(ledger, period), [ledger, period]);
+  const current = useMemo(
+    () => (view.all ? ledger : monthExpenses(ledger, view.year, view.month)),
+    [ledger, view],
+  );
+  const previous = useMemo(() => {
+    if (view.all) return [];
+    const month = view.month === 1 ? 12 : view.month - 1;
+    const year = view.month === 1 ? view.year - 1 : view.year;
+    return monthExpenses(ledger, year, month);
+  }, [ledger, view]);
   const summary = classTotals(current);
   const cats = categoryBreakdown(state, current, previous);
+  const trend = monthlyTrend(ledger, 6);
   const places = placeBreakdown(current);
   const methods = methodBreakdown(state, current);
   const weekdays = weekdayBreakdown(current);
   const thirds = monthThirds(current);
-  const trend = monthlyTrend(ledger, 6);
-  const heat = heatmapDays(current, now.year, now.month);
+  const heat = heatmapDays(ledger, view.year, view.month);
   const flags = anomalies(current);
   const sim = simulate(current, 0.2, 0.5);
   const score = balanceScore(current, previous, state.settings.goals);
-  const cmp = compareMonths(ledger, now.year, now.month);
-  const insights = state.settings.aiEnabled ? shortInsights(state, current, previous, currency) : [];
-  const delta =
-    cmp.previous.total > 0 ? ((cmp.current.total - cmp.previous.total) / cmp.previous.total) * 100 : null;
-
-  function openClass(id: SpendClass) {
-    router.push(`/liste?class=${id}`);
-  }
+  const cmp = compareMonths(ledger, view.year, view.month);
+  const insight = state.settings.aiEnabled ? shortInsights(state, current, previous, currency)[0] : "";
+  const delta = cmp.previous.total > 0 ? ((cmp.current.total - cmp.previous.total) / cmp.previous.total) * 100 : null;
 
   return (
-    <main className="px-5 pt-8 pb-8">
-      <p className="text-[13px] font-medium text-ink-muted">Analiz</p>
-      <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Harcama özeti</h1>
-      <div className="mt-5">
-        <PeriodPills value={period} onChange={setPeriod} />
-      </div>
-      <p className="mt-6 text-[36px] font-semibold leading-none tracking-tight">
-        {formatMoney(summary.total, currency)}
-      </p>
-      {delta != null ? (
-        <p className="mt-2 text-sm text-ink-muted">
-          {formatMonthTitle(cmp.prevCursor.year, cmp.prevCursor.month)} ile karşılaştırma: {delta > 0 ? "+" : ""}
-          {delta.toFixed(1)}%
-        </p>
-      ) : null}
-
-      <div className="mt-6 flex gap-2 overflow-x-auto pb-1">
-        {SECTIONS.map((item) => (
+    <main className="px-5 pt-6 pb-8">
+      <MonthPicker />
+      <div className="mt-5 flex gap-4 overflow-x-auto text-[15px]">
+        {TABS.map((item) => (
           <button
-            key={item.id}
+            key={item}
             type="button"
-            className={section === item.id ? "chip chip-active shrink-0" : "chip shrink-0"}
-            onClick={() => setSection(item.id)}
+            className={tab === item ? "font-semibold" : "text-ink-muted"}
+            onClick={() => setTab(item)}
           >
-            {item.label}
+            {item}
           </button>
         ))}
       </div>
 
-      {section === "genel" || section === "sinif" ? (
+      {tab === "Genel" ? (
         <section className="mt-8">
-          <h2 className="mb-3 text-[15px] font-semibold">İhtiyaç / İstek / Lüks</h2>
-          <ClassShare
-            pct={summary.pct}
-            amounts={summary.amounts}
-            currencyText={(n) => formatMoney(n, currency)}
-            onSelect={openClass}
-          />
-          <div className="mt-6 rounded-3xl border border-line bg-[color:var(--white)] p-4">
-            <p className="text-[12px] font-medium uppercase tracking-wide text-ink-muted">Harcama dengesi</p>
-            <p className="mt-2 text-[32px] font-semibold">{score} / 100</p>
-            <p className="mt-2 text-[13px] leading-relaxed text-ink-muted">
-              Kişisel tüketim göstergesi: ihtiyaç oranı, istek/lüks payı, önceki döneme göre değişim ve isteğe bağlı
-              hedefler. Ahlaki bir puan değildir.
-            </p>
+          <p className="text-[13px] text-ink-muted">Toplam</p>
+          <p className="mt-1 text-[36px] font-semibold tracking-tight">{formatMoney(summary.total, currency)}</p>
+          {delta != null ? (
+            <p className="mt-1 text-[14px] text-ink-muted">Geçen aya göre {delta > 0 ? "+" : ""}{delta.toFixed(1)}%</p>
+          ) : null}
+          <p className="mt-6 text-[15px]">
+            İhtiyaç %{Math.round(summary.pct.need)} · İstek %{Math.round(summary.pct.want)} · Lüks %{Math.round(summary.pct.luxury)}
+          </p>
+          <p className="mt-6 text-[13px] text-ink-muted">Harcama dengesi</p>
+          <p className="text-[28px] font-semibold">{score} / 100</p>
+          {insight ? <p className="mt-4 text-[16px] leading-relaxed">{insight}</p> : null}
+          <div className="mt-6">
+            {methods.slice(0, 4).map((row) => (
+              <p key={row.id} className="flex justify-between py-2 text-[15px]">
+                <span>{row.code}</span>
+                <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
+              </p>
+            ))}
+          </div>
+          {state.settings.aiEnabled ? (
+            <div className="mt-8">
+              <h2 className="text-[13px] text-ink-muted">Harcama AI</h2>
+              <div className="mt-2">
+                {AI_QUESTIONS.map((item) => (
+                  <button key={item.id} type="button" className="row-link" onClick={() => setAnswer(answerQuestion(item.id, state, current, previous, currency))}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              {answer ? <p className="mt-3 text-[15px] leading-relaxed">{answer}</p> : null}
+              <p className="mt-4 text-[14px] text-ink-muted">
+                İstekleri %20 azaltsan {formatMoney(sim.want, currency)} · Lüksü %50 azaltsan {formatMoney(sim.luxury, currency)}
+              </p>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {tab === "Sınıflar" ? (
+        <section className="mt-8 space-y-4">
+          {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
+            <button key={id} type="button" className="block w-full text-left" onClick={() => router.push(`/liste?class=${id}`)}>
+              <p className="text-[13px] text-ink-muted">{CLASS_LABEL[id]}</p>
+              <p className="text-[28px] font-semibold tabular-nums">{formatMoney(summary.amounts[id], currency)}</p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+                <span className={`block h-full class-bar-${id}`} style={{ width: `${summary.pct[id]}%` }} />
+              </div>
+            </button>
+          ))}
+          <div className="pt-4">
+            {trend.map((row) => (
+              <p key={`${row.year}-${row.month}`} className="flex justify-between py-2 text-[14px]">
+                <span>{row.month}/{row.year}</span>
+                <span className="tabular-nums text-ink-muted">
+                  {formatMoney(row.amounts.need, currency)} · {formatMoney(row.amounts.want, currency)} · {formatMoney(row.amounts.luxury, currency)}
+                </span>
+              </p>
+            ))}
           </div>
         </section>
       ) : null}
 
-      {section === "genel" || section === "kategori" ? (
-        <section className="mt-10">
-          <h2 className="mb-3 text-[15px] font-semibold">Kategoriler</h2>
-          <ul className="space-y-4">
-            {cats.map((row) => (
-              <li key={row.id}>
-                <button type="button" className="w-full text-left" onClick={() => router.push(`/liste?cat=${row.id}`)}>
-                  <div className="flex justify-between text-[14px]">
-                    <span className="font-medium">{row.name}</span>
-                    <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
-                  </div>
-                  <p className="mt-1 text-[12px] text-ink-muted">
-                    %{row.pct.toFixed(1)} · geçen döneme göre {row.mom >= 0 ? "+" : ""}
-                    {row.mom.toFixed(0)}%
-                  </p>
-                  <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-line">
-                    {(["need", "want", "luxury"] as SpendClass[]).map((id) =>
-                      row.classes.pct[id] > 0 ? (
-                        <span key={id} className={`class-bar-${id}`} style={{ width: `${row.classes.pct[id]}%` }} />
-                      ) : null,
-                    )}
-                  </div>
-                  <p className="mt-1 text-[12px] text-ink-muted">
-                    {CLASS_LABEL.need} {formatMoney(row.classes.amounts.need, currency)} · {CLASS_LABEL.want}{" "}
-                    {formatMoney(row.classes.amounts.want, currency)} · {CLASS_LABEL.luxury}{" "}
-                    {formatMoney(row.classes.amounts.luxury, currency)}
-                  </p>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {section === "isletme" ? (
-        <section className="mt-10">
-          <h2 className="mb-3 text-[15px] font-semibold">İşletmeler</h2>
-          <p className="mb-3 text-[13px] text-ink-muted">
-            En sık: {[...places].sort((a, b) => b.count - a.count)[0]?.place ?? "—"}
-          </p>
-          <ul className="divide-y divide-line">
-            {places.slice(0, 12).map((row) => (
-              <li key={row.place}>
-                <button
-                  type="button"
-                  className="flex w-full justify-between py-3 text-left"
-                  onClick={() => router.push(`/liste?place=${encodeURIComponent(row.place)}`)}
-                >
-                  <span>
-                    {row.place}
-                    <span className="ml-2 text-[12px] text-ink-muted">{row.count} kayıt</span>
-                  </span>
-                  <span className="tabular-nums font-medium">{formatMoney(row.amount, currency)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {section === "zaman" || section === "genel" ? (
-        <section className="mt-10">
-          <h2 className="mb-3 text-[15px] font-semibold">Aylık trend</h2>
-          <ul className="space-y-3">
-            {trend.map((row) => (
-              <li key={`${row.year}-${row.month}`}>
-                <p className="text-[14px] font-medium">{formatMonthTitle(row.year, row.month)}</p>
-                <div className="mt-1 flex h-2 overflow-hidden rounded-full bg-line">
-                  {(["need", "want", "luxury"] as SpendClass[]).map((id) =>
-                    row.pct[id] > 0 ? (
-                      <span key={id} className={`class-bar-${id}`} style={{ width: `${row.pct[id]}%` }} />
-                    ) : null,
-                  )}
+      {tab === "Kategoriler" ? (
+        <ul className="mt-6">
+          {cats.map((row) => (
+            <li key={row.id}>
+              <button type="button" className="w-full py-3 text-left" onClick={() => router.push(`/liste?cat=${row.id}`)}>
+                <div className="flex justify-between">
+                  <span className="font-medium">{row.name}</span>
+                  <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
                 </div>
                 <p className="mt-1 text-[12px] text-ink-muted">
-                  İhtiyaç {formatMoney(row.amounts.need, currency)} · İstek {formatMoney(row.amounts.want, currency)} ·
-                  Lüks {formatMoney(row.amounts.luxury, currency)}
+                  %{row.pct.toFixed(0)} · {row.mom >= 0 ? "+" : ""}{row.mom.toFixed(0)}%
+                  {" · "}
+                  İhtiyaç {formatMoney(row.classes.amounts.need, currency)} · İstek {formatMoney(row.classes.amounts.want, currency)} · Lüks {formatMoney(row.classes.amounts.luxury, currency)}
                 </p>
-              </li>
-            ))}
-          </ul>
-        </section>
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : null}
 
-      {section === "zaman" ? (
-        <>
-          <section className="mt-10">
-            <h2 className="mb-3 text-[15px] font-semibold">Isı haritası</h2>
-            <Heatmap {...heat} currency={currency} />
-          </section>
-          <section className="mt-10">
-            <h2 className="mb-3 text-[15px] font-semibold">Haftanın günleri</h2>
-            <ul className="space-y-2">
-              {weekdays.map((row) => (
-                <li key={row.weekday} className="flex justify-between text-[14px]">
-                  <span>{row.label}</span>
-                  <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <section className="mt-10">
-            <h2 className="mb-3 text-[15px] font-semibold">Ayın dönemleri</h2>
-            {thirds.map((row) => (
-              <p key={row.id} className="flex justify-between py-2 text-[14px]">
+      {tab === "Zaman" ? (
+        <section className="mt-6 space-y-8">
+          <Heatmap {...heat} currency={currency} />
+          <div>
+            {weekdays.map((row) => (
+              <p key={row.weekday} className="flex justify-between py-1.5 text-[15px]">
                 <span>{row.label}</span>
                 <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
               </p>
             ))}
-          </section>
-        </>
-      ) : null}
-
-      {section === "odeme" ? (
-        <section className="mt-10">
-          <h2 className="mb-3 text-[15px] font-semibold">Ödeme yöntemleri</h2>
-          <ul className="space-y-4">
-            {methods.map((row) => (
-              <li key={row.id}>
-                <div className="flex justify-between text-[14px]">
-                  <span>
-                    {row.code} · {row.name}
-                  </span>
-                  <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
-                </div>
-                <p className="mt-1 text-[12px] text-ink-muted">
-                  İstek payı %{Math.round(row.classes.pct.want)} · Lüks %{Math.round(row.classes.pct.luxury)}
-                </p>
-              </li>
+          </div>
+          <div>
+            {thirds.map((row) => (
+              <p key={row.id} className="flex justify-between py-1.5 text-[15px]">
+                <span>{row.label}</span>
+                <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
+              </p>
             ))}
-          </ul>
+          </div>
+          <div>
+            {trend.map((row) => (
+              <p key={`${row.year}-${row.month}`} className="flex justify-between py-1.5 text-[15px]">
+                <span>{row.month}.{row.year}</span>
+                <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
+              </p>
+            ))}
+          </div>
+          {flags.slice(0, 3).map((flag) => (
+            <p key={flag.expense.id} className="text-[14px] text-ink-muted">
+              {flag.expense.place} · {formatMoney(flag.expense.amount, currency)} — {flag.message}
+            </p>
+          ))}
         </section>
       ) : null}
 
-      {section === "ai" ? (
-        <section className="mt-10 space-y-5">
-          {!state.settings.aiEnabled ? (
-            <p className="text-sm text-ink-muted">Harcama AI Ayarlar’dan kapatılmış. Analiz cihaz üzerinde çalışır.</p>
-          ) : (
-            <>
-              <div>
-                <h2 className="mb-3 text-[15px] font-semibold">Hazır sorular</h2>
-                <div className="flex flex-col gap-2">
-                  {AI_QUESTIONS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="rounded-2xl border border-line bg-[color:var(--white)] px-4 py-3 text-left text-[14px]"
-                      onClick={() => setAnswer(answerQuestion(item.id, state, current, previous, currency))}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-                {answer ? <p className="mt-4 text-[15px] leading-relaxed">{answer}</p> : null}
-              </div>
-              <div className="rounded-3xl border border-line bg-[color:var(--white)] p-4">
-                <h2 className="text-[15px] font-semibold">Tasarruf simülasyonu</h2>
-                <p className="mt-3 text-[14px]">
-                  İstek harcamalarını %20 azaltsaydın bu dönemde{" "}
-                  <strong>{formatMoney(sim.want, currency)}</strong> daha az harcayabilirdin.
-                </p>
-                <p className="mt-2 text-[14px]">
-                  Lüks harcamalarını %50 azaltsaydın{" "}
-                  <strong>{formatMoney(sim.luxury, currency)}</strong> daha az harcayabilirdin.
-                </p>
-              </div>
-              <div>
-                <h2 className="mb-2 text-[15px] font-semibold">Sıra dışı kayıtlar</h2>
-                {flags.length === 0 ? (
-                  <p className="text-sm text-ink-muted">Belirgin sapma yok.</p>
-                ) : (
-                  <ul className="space-y-2 text-[14px]">
-                    {flags.map((flag) => (
-                      <li key={flag.expense.id}>
-                        {flag.expense.place} · {formatMoney(flag.expense.amount, currency)} — {flag.message}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div>
-                <h2 className="mb-2 text-[15px] font-semibold">İçgörüler</h2>
-                <ul className="space-y-2">
-                  {insights.map((line) => (
-                    <li key={line} className="text-[14px] leading-relaxed">
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          )}
-        </section>
+      {tab === "İşletmeler" ? (
+        <ul className="mt-4">
+          {places.slice(0, 12).map((row) => (
+            <li key={row.place}>
+              <button type="button" className="row-link" onClick={() => router.push(`/liste?place=${encodeURIComponent(row.place)}`)}>
+                <span>
+                  {row.place}
+                  <span className="ml-2 text-[12px] text-ink-muted">{row.count}</span>
+                </span>
+                <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </main>
   );
