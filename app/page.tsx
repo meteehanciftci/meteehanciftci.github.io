@@ -26,6 +26,12 @@ export default function HomePage() {
         {formatMonthTitle(now.year, now.month)}
       </p>
 
+      <div className="mt-8">
+        <Link href="/ekle" className="btn-primary">
+          + Harcama Ekle
+        </Link>
+      </div>
+
       <section className="mt-10">
         <div className="mb-1 flex items-baseline justify-between">
           <h2 className="text-[15px] font-semibold">Son harcamalar</h2>
@@ -58,12 +64,6 @@ export default function HomePage() {
           </ul>
         )}
       </section>
-
-      <div className="mt-10 pb-2">
-        <Link href="/ekle" className="btn-primary">
-          + Harcama Ekle
-        </Link>
-      </div>
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import { istanbulParts } from "./format";
 import type { AppState } from "./types";
 
 export const SEED_CATEGORIES = [
@@ -22,11 +23,26 @@ export const SEED_METHODS = [
   { id: "m-yk-kk", name: "Yapı Kredi KK" },
 ] as const;
 
-function daysAgo(days: number, hour = 12, minute = 0): number {
-  const now = new Date();
-  now.setHours(hour, minute, 0, 0);
-  now.setDate(now.getDate() - days);
-  return now.getTime();
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function atThisMonth(day: number, hour: number, minute = 0): number {
+  const now = istanbulParts();
+  const safeDay = Math.min(Math.max(day, 1), now.day);
+  return Date.parse(
+    `${now.year}-${pad(now.month)}-${pad(safeDay)}T${pad(hour)}:${pad(minute)}:00+03:00`,
+  );
+}
+
+function atLastMonth(day: number, hour: number): number {
+  const now = istanbulParts();
+  const month = now.month === 1 ? 12 : now.month - 1;
+  const year = now.month === 1 ? now.year - 1 : now.year;
+  const safeDay = Math.min(day, 28);
+  return Date.parse(
+    `${year}-${pad(month)}-${pad(safeDay)}T${pad(hour)}:00:00+03:00`,
+  );
 }
 
 export function createSeedState(): AppState {
@@ -37,7 +53,7 @@ export function createSeedState(): AppState {
       amount: 487.9,
       categoryId: "cat-market",
       methodId: "m-enpara-kk",
-      createdAt: daysAgo(0, 10, 24),
+      createdAt: atThisMonth(31, 10, 24),
     },
     {
       id: "exp-shell",
@@ -45,7 +61,7 @@ export function createSeedState(): AppState {
       amount: 1250,
       categoryId: "cat-akaryakit",
       methodId: "m-is-kk",
-      createdAt: daysAgo(1, 18, 5),
+      createdAt: atThisMonth(30, 18, 5),
     },
     {
       id: "exp-starbucks",
@@ -53,7 +69,7 @@ export function createSeedState(): AppState {
       amount: 165,
       categoryId: "cat-yeme",
       methodId: "m-nakit",
-      createdAt: daysAgo(1, 9, 12),
+      createdAt: atThisMonth(29, 9, 12),
     },
     {
       id: "exp-trendyol",
@@ -61,7 +77,7 @@ export function createSeedState(): AppState {
       amount: 2190,
       categoryId: "cat-giyim",
       methodId: "m-enpara-kk",
-      createdAt: daysAgo(3, 21, 40),
+      createdAt: atThisMonth(28, 21, 40),
     },
     {
       id: "exp-berber",
@@ -69,7 +85,7 @@ export function createSeedState(): AppState {
       amount: 400,
       categoryId: "cat-bakim",
       methodId: "m-nakit",
-      createdAt: daysAgo(4, 16, 0),
+      createdAt: atThisMonth(26, 16, 0),
     },
     {
       id: "exp-getir",
@@ -77,7 +93,7 @@ export function createSeedState(): AppState {
       amount: 189.5,
       categoryId: "cat-market",
       methodId: "m-enpara-hesap",
-      createdAt: daysAgo(5, 20, 18),
+      createdAt: atThisMonth(24, 20, 18),
     },
     {
       id: "exp-spotify",
@@ -85,7 +101,7 @@ export function createSeedState(): AppState {
       amount: 65.99,
       categoryId: "cat-abonelik",
       methodId: "m-enpara-hesap",
-      createdAt: daysAgo(8, 8, 0),
+      createdAt: atLastMonth(22, 8),
     },
     {
       id: "exp-taksi",
@@ -93,7 +109,7 @@ export function createSeedState(): AppState {
       amount: 240,
       categoryId: "cat-ulasim",
       methodId: "m-nakit",
-      createdAt: daysAgo(9, 23, 10),
+      createdAt: atThisMonth(22, 23, 10),
     },
     {
       id: "exp-migros-2",
@@ -101,7 +117,7 @@ export function createSeedState(): AppState {
       amount: 1120.4,
       categoryId: "cat-market",
       methodId: "m-enpara-kk",
-      createdAt: daysAgo(11, 19, 30),
+      createdAt: atLastMonth(18, 19),
     },
   ];
 

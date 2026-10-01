@@ -140,6 +140,7 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
           <input
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
+            onFocus={(event) => event.currentTarget.select()}
             onBlur={() => {
               const parsed = parseAmountInput(amount);
               if (parsed != null) {
@@ -240,15 +241,16 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
         </p>
       ) : null}
 
-      <button type="submit" className="btn-primary">
-        {submitLabel}
-      </button>
-
-      {onDelete ? (
-        <button type="button" className="btn-danger" onClick={onDelete}>
-          Sil
+      <div className="sticky bottom-[calc(4.85rem+env(safe-area-inset-bottom))] z-20 -mx-5 space-y-1 border-t border-line/70 bg-canvas/95 px-5 py-3 backdrop-blur-sm">
+        <button type="submit" className="btn-primary">
+          {submitLabel}
         </button>
-      ) : null}
+        {onDelete ? (
+          <button type="button" className="btn-danger mt-1" onClick={onDelete}>
+            Sil
+          </button>
+        ) : null}
+      </div>
     </form>
   );
 }

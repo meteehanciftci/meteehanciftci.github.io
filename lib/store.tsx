@@ -59,8 +59,10 @@ function getSnapshot() {
   return memory;
 }
 
+const SERVER_SNAPSHOT = createSeedState();
+
 function getServerSnapshot(): AppState {
-  return createSeedState();
+  return SERVER_SNAPSHOT;
 }
 
 function commit(next: AppState) {
@@ -73,8 +75,17 @@ function normalizeName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }
 
+function subscribeIsClient(onChange: () => void) {
+  queueMicrotask(onChange);
+  return () => {};
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const hydrated = useSyncExternalStore(subscribe, () => true, () => false);
+  const hydrated = useSyncExternalStore(
+    subscribeIsClient,
+    () => true,
+    () => false,
+  );
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const value = useMemo<StoreValue>(() => {

@@ -36,13 +36,15 @@ export function BottomNav() {
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 px-2 text-[11px] tracking-tight ${
+                className={`flex min-h-[3.75rem] flex-col items-center justify-center gap-1 px-1 py-1.5 text-[11px] tracking-tight ${
                   active ? "font-semibold text-ink" : "font-medium text-ink-muted"
                 }`}
                 aria-current={active ? "page" : undefined}
               >
                 <item.icon active={active} />
-                {item.label}
+                <span className="max-w-[7.5rem] text-center leading-tight">
+                  {item.label}
+                </span>
               </Link>
             </li>
           );
