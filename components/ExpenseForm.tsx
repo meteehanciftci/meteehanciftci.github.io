@@ -13,12 +13,13 @@ const METHOD_TYPES: { id: MethodType; label: string }[] = [
 
 type Props = {
   expense?: Expense | null;
+  nowTs?: number;
   submitLabel?: string;
   onSubmit: (values: ExpenseDraft) => void;
   onDelete?: () => void;
 };
 
-export function ExpenseForm({ expense, submitLabel = "Kaydet", onSubmit, onDelete }: Props) {
+export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, onDelete }: Props) {
   const { places, suggestionForPlace, addMethod, addCategory } = useStore();
   const methods = useSortedMethods();
   const categories = useSortedCategories();
@@ -31,7 +32,11 @@ export function ExpenseForm({ expense, submitLabel = "Kaydet", onSubmit, onDelet
   const [categoryId, setCategoryId] = useState(expense?.categoryId ?? "");
   const [methodId, setMethodId] = useState(expense?.methodId ?? nakit?.id ?? "");
   const [occurredAt, setOccurredAt] = useState(
-    expense ? toDatetimeLocal(expense.occurredAt) : "",
+    expense
+      ? toDatetimeLocal(expense.occurredAt)
+      : nowTs
+        ? toDatetimeLocal(nowTs)
+        : "",
   );
   const [note, setNote] = useState(expense?.note ?? "");
   const [installmentsOn, setInstallmentsOn] = useState(

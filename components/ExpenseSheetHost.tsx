@@ -9,7 +9,7 @@ import { useToast } from "./Toast";
 import { useStore } from "@/lib/store";
 
 export function ExpenseSheetHost() {
-  const { addOpen, editing, close } = useExpenseSheet();
+  const { addOpen, editing, openedAt, close } = useExpenseSheet();
   const { addExpense, updateExpense, deleteExpense } = useStore();
   const { showToast } = useToast();
   const [confirm, setConfirm] = useState(false);
@@ -22,8 +22,9 @@ export function ExpenseSheetHost() {
         onClose={close}
       >
         <ExpenseForm
-          key={editing?.id ?? "new"}
+          key={editing?.id ?? `new-${openedAt}`}
           expense={editing}
+          nowTs={openedAt}
           onSubmit={(values) => {
             if (editing) {
               updateExpense(editing.id, values);
