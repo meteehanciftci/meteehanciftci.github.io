@@ -1,45 +1,30 @@
-# Simple Man
+# Harcama Defteri
 
-Quiet premium editorial site for a personal philosophy of less, better, and lasting.
+Günlük harcamaları dört alanla kaydeden, mobil öncelikli bir gider defteri. Veriler tarayıcıda (localStorage) tutulur; sunucu gerekmez.
 
-Live: https://meteehanciftci.github.io/
-
-## Stack
-
-- HTML + CSS + vanilla JS
-- GitHub Pages
-- No framework
-
-## Structure
-
-```text
-/
-├── index.html
-├── journal/
-├── heritage/
-├── stoicism/
-├── cifl/
-├── about/
-├── css/style.css
-├── js/main.js
-├── js/cifl.js
-└── favicon.svg
-```
-
-## Local
+## Çalıştırma
 
 ```bash
-cd website
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
-Open http://127.0.0.1:8080
+Tarayıcıda [http://localhost:3000](http://localhost:3000) açın.
 
-## Contact
+Üretim derlemesi:
 
-mailto:metehanciftcii@icloud.com
+```bash
+npm run build
+npx serve out
+```
 
-## Deploy
+## Kullanım
 
-Push to `main` on `meteehanciftci/meteehanciftci.github.io`.
-GitHub Pages serves the root.
+1. **+ Harcama Ekle** — yer, miktar, ödeme yöntemi, kategori.
+2. Ana ekranda **Bu Ay** toplamı ve son harcamalar.
+3. **Tümü** — arama ve tarih / kategori / ödeme filtresi.
+4. Bir kayda dokunun — düzenle veya sil.
+5. **Özet** — seçilen ayın toplamı ve kırılımlar.
+6. **Ayarlar** — kategori ve ödeme yöntemlerini yönetin.
+
+İlk açılışta örnek harcamalar yüklenir.

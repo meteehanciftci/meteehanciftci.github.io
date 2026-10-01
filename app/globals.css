@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+:root {
+  --canvas: #f4f1ec;
+  --white: #ffffff;
+  --ink: #141414;
+  --ink-muted: #6f6b66;
+  --line: #e6e1d8;
+  --accent: #1f6b4a;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-geist-sans);
+}
+
+html {
+  background: var(--canvas);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.field {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.9rem 1rem;
+  font-size: 16px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.field:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.06);
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.55rem 0.9rem;
+  font-size: 14px;
+  color: var(--ink);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.chip-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: white;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  display: inline-flex;
+  min-height: 3.25rem;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.15rem;
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active {
+  transform: scale(0.985);
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: white;
+}
+
+.btn-secondary {
+  width: auto;
+  min-height: 3rem;
+  padding: 0 1rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+}
+
+.btn-danger {
+  background: transparent;
+  color: #b42318;
+}
+
+.select {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 0.5rem 0.85rem;
+  font-size: 13px;
+  color: var(--ink);
+}
