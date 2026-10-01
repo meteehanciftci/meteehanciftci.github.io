@@ -1,45 +1,56 @@
-# Simple Man
+# Harcama Defteri
 
-Quiet premium editorial site for a personal philosophy of less, better, and lasting.
+AI destekli kişisel harcama defteri. Kayıtlar İhtiyaç / İstek / Lüks olarak sınıflanır; analiz cihaz üzerinde, çevrimdışı çalışır. Muhasebe, banka veya borç uygulaması değildir.
 
-Live: https://meteehanciftci.github.io/
-
-## Stack
-
-- HTML + CSS + vanilla JS
-- GitHub Pages
-- No framework
-
-## Structure
-
-```text
-/
-├── index.html
-├── journal/
-├── heritage/
-├── stoicism/
-├── cifl/
-├── about/
-├── css/style.css
-├── js/main.js
-├── js/cifl.js
-└── favicon.svg
-```
-
-## Local
+## Çalıştırma
 
 ```bash
-cd website
-python3 -m http.server 8080
+npm install
+npm run dev
 ```
 
-Open http://127.0.0.1:8080
+Tarayıcıda [http://localhost:3000](http://localhost:3000) açın.
 
-## Contact
+Üretim derlemesi:
 
-mailto:metehanciftcii@icloud.com
+```bash
+npm run build
+npx serve out
+```
 
-## Deploy
+## Kullanım
 
-Push to `main` on `meteehanciftci/meteehanciftci.github.io`.
-GitHub Pages serves the root.
+1. **+ Harcama Ekle** — yer, tutar, ödeme, sınıf, kategori.
+2. Ana ekranda ay seçici — ‹ Eylül 2026 ›. Ay değiştirmek kayıtları silmez.
+3. **Harcamalar** — seçilen ay, arama ve filtre.
+4. Bir kayda dokunun — slip detayı, düzenle veya sil. Sola kaydırma silme onayı açar.
+5. **Analiz** — sınıflar, kategoriler, zaman, işletmeler, Harcama AI.
+6. **Ayarlar → Veri ve yedekleme** — JSON yedek, CSV, geri yükleme (birleştir veya üzerine yaz).
+
+İlk açılışta örnek harcamalar yüklenir. Kayıtlar yalnızca elle eklenen tüketimlerdir.
+
+## Android APK (tablet)
+
+Hazır APK: [public/harcama-defteri.apk](./public/harcama-defteri.apk)
+
+Tablete yüklemek için debug APK’yı indirin ve “bilinmeyen kaynaklar”a izin vererek kurun.
+
+```bash
+npm install
+npm run build:apk
+```
+
+Çıktı: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+Tablette:
+
+1. APK dosyasını tablete kopyalayın (USB, Drive, e-posta).
+2. Ayarlar → Güvenlik → **Bilinmeyen kaynaklar** / **Bu kaynaktan yükle** açık olsun.
+3. Dosyaya dokunup **Yükle**.
+4. Başlatıcıda **Harcama Defteri** görünür.
+
+USB ile (bilgisayarda Android SDK varsa):
+
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
