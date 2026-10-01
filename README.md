@@ -28,3 +28,27 @@ npx serve out
 6. **Ayarlar** — kategori ve ödeme yöntemlerini yönetin.
 
 İlk açılışta örnek harcamalar yüklenir.
+
+## Android APK (tablet)
+
+Tablete yüklemek için debug APK’yı indirin ve “bilinmeyen kaynaklar”a izin vererek kurun.
+
+```bash
+npm install
+npm run build:apk
+```
+
+Çıktı: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+Tablette:
+
+1. APK dosyasını tablete kopyalayın (USB, Drive, e-posta).
+2. Ayarlar → Güvenlik → **Bilinmeyen kaynaklar** / **Bu kaynaktan yükle** açık olsun.
+3. Dosyaya dokunup **Yükle**.
+4. Başlatıcıda **Harcama Defteri** görünür.
+
+USB ile (bilgisayarda Android SDK varsa):
+
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
