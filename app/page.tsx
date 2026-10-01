@@ -83,11 +83,11 @@ export default function HomePage() {
         {trend.length === 0 ? (
           <p className="text-sm text-ink-muted">Bu aralıkta kayıt yok.</p>
         ) : (
-          <div className="flex h-24 items-end gap-1">
+          <div className="flex h-24 items-end gap-1 overflow-x-auto">
             {trend.map(([day, value]) => (
               <div
                 key={day}
-                className="min-w-0 flex-1 rounded-t-md bg-ink/80"
+                className="w-2 shrink-0 rounded-t-md bg-ink/80"
                 style={{ height: `${Math.max(8, (value / maxDay) * 100)}%` }}
               />
             ))}

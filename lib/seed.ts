@@ -39,10 +39,12 @@ function pad(n: number) {
 
 function atMonth(offset: number, day: number, hour: number, minute = 0): number {
   const now = istanbulParts();
-  const cursorMonth = now.month - 1 + offset;
-  const date = new Date(now.year, cursorMonth, 1);
+  const date = new Date(now.year, now.month - 1 + offset, 1);
   const maxDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  const safeDay = Math.min(Math.max(day, 1), offset === 0 ? Math.min(now.day, maxDay) : maxDay);
+  if (offset === 0 && day > now.day) {
+    return atMonth(-1, day, hour, minute);
+  }
+  const safeDay = Math.min(Math.max(day, 1), maxDay);
   return Date.parse(
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(safeDay)}T${pad(hour)}:${pad(minute)}:00+03:00`,
   );
