@@ -5,8 +5,9 @@ import Link from "next/link";
 import { MonthPicker } from "@/components/MonthPicker";
 import { GroupedExpenseList } from "@/components/GroupedExpenseList";
 import { useExpenseSheet } from "@/components/ExpenseSheetContext";
+import { LineChart } from "@/components/Charts";
 import { classTotals, dailySeries, monthExpenses } from "@/lib/analytics";
-import { formatMoney, shiftMonth } from "@/lib/format";
+import { formatMoney, monthAnchor, shiftMonth } from "@/lib/format";
 import { shortInsights } from "@/lib/insights";
 import { useStore } from "@/lib/store";
 import { useViewMonth } from "@/lib/view-month";
@@ -28,17 +29,19 @@ export default function HomePage() {
   }, [ledger, view]);
   const summary = classTotals(current);
   const trend = dailySeries(current);
-  const maxDay = Math.max(1, ...trend.map(([, value]) => value));
-  const insight = state.settings.aiEnabled ? shortInsights(state, current, previous, currency)[0] : "";
+  const insight = state.settings.aiEnabled && !view.all
+    ? shortInsights(state, current, previous, currency, monthAnchor(view.year, view.month))[0]
+    : "";
   const recent = [...current].sort((a, b) => b.occurredAt - a.occurredAt).slice(0, 5);
 
   return (
     <main className="px-5 pt-6">
       <MonthPicker />
-      <p className="mt-8 text-[40px] font-semibold leading-none tracking-tight">
+      <p className="mt-6 text-[13px] text-ink-muted">{view.all ? "Tüm kayıtlar" : "Bu ay harcadın"}</p>
+      <p className="mt-1 text-[40px] font-semibold leading-none tracking-tight">
         {formatMoney(summary.total, currency)}
       </p>
-      <p className="mt-2 text-[14px] text-ink-muted">{view.all ? "Tüm harcamalar" : "Toplam harcama"}</p>
+      <p className="mt-2 text-[14px] text-ink-muted">{current.length} işlem</p>
       <p className="mt-4 text-[15px]">
         {(["need", "want", "luxury"] as SpendClass[]).map((id, index) => (
           <span key={id}>
@@ -53,15 +56,7 @@ export default function HomePage() {
         {trend.length === 0 ? (
           <p className="mt-6 text-[15px] text-ink-muted">Bu dönem için harcama kaydı bulunmuyor.</p>
         ) : (
-          <div className="mt-4 flex h-16 items-end gap-1">
-            {trend.map(([day, value]) => (
-              <div
-                key={day}
-                className="w-1.5 rounded-full bg-ink/80"
-                style={{ height: `${Math.max(8, (value / maxDay) * 100)}%` }}
-              />
-            ))}
-          </div>
+          <LineChart points={trend.map(([day, value]) => ({ label: String(day), value }))} />
         )}
       </section>
 

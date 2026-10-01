@@ -1,4 +1,4 @@
-import { istanbulParts, toExpenseDate } from "./format";
+import { istanbulParts } from "./format";
 import { LEDGER_KIND, type AppState, type MethodType, type SpendClass } from "./types";
 
 export const SEED_CATEGORIES = [
@@ -96,7 +96,6 @@ export function createSeedState(): AppState {
       methodId: item.methodId,
       spendClass: item.spendClass,
       occurredAt,
-      expenseDate: toExpenseDate(occurredAt),
       createdAt: occurredAt,
       note: item.note ?? "",
       installmentCount: item.installmentCount,

@@ -1,4 +1,4 @@
-import { formatMoney, formatMonthTitle, istanbulParts } from "./format";
+import { formatMoney, formatMonthTitle, monthAnchor } from "./format";
 import {
   anomalies,
   categoryBreakdown,
@@ -20,11 +20,14 @@ export function shortInsights(
   current: Expense[],
   previous: Expense[],
   currency: CurrencyCode,
+  anchor = Date.now(),
 ): string[] {
   const now = classTotals(current);
   const prev = classTotals(previous);
   const lines: string[] = [];
-  if (prev.total > 0) {
+  if (prev.total <= 0) {
+    /* seçili dönemin öncesi yoksa karşılaştırma üretme */
+  } else {
     const wantDelta = now.pct.want - prev.pct.want;
     if (Math.abs(wantDelta) >= 3) {
       lines.push(
@@ -47,7 +50,7 @@ export function shortInsights(
       `${food.name} harcamalarının ${pct(food.classes.pct.want)}’i İstek olarak sınıflandırılmış.`,
     );
   }
-  const trend = monthlyTrend(current.concat(previous), 3);
+  const trend = monthlyTrend(current.concat(previous), 3, anchor);
   if (trend.length === 3) {
     const richestLuxury = [...trend].sort((a, b) => b.amounts.luxury - a.amounts.luxury)[0];
     if (richestLuxury.amounts.luxury > 0) {
@@ -76,13 +79,18 @@ export function answerQuestion(
   current: Expense[],
   previous: Expense[],
   currency: CurrencyCode,
+  period: { year: number; month: number; all: boolean },
 ): string {
   const now = classTotals(current);
   const cats = categoryBreakdown(state, current, previous);
   const places = placeBreakdown(current);
   const flags = anomalies(current);
   const weekday = weekdayBreakdown(current).sort((a, b) => b.total - a.total)[0];
-  const cmp = compareMonths(state.expenses, istanbulParts().year, istanbulParts().month);
+  if (period.all && (questionId === "mom" || questionId === "luxury" || questionId === "trend")) {
+    return "Karşılaştırma için ay seçiciden bir ay seç.";
+  }
+  const cmp = compareMonths(state.expenses, period.year, period.month);
+  const anchor = monthAnchor(period.year, period.month);
 
   if (questionId === "where") {
     const top = cats[0];
@@ -126,7 +134,7 @@ export function answerQuestion(
       .join(" ");
   }
   if (questionId === "trend") {
-    const months = monthlyTrend(state.expenses, 6);
+    const months = monthlyTrend(state.expenses, 6, anchor);
     return months
       .map(
         (row) =>

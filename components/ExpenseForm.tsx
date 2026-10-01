@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatSuggestion, suggestSpendClass } from "@/lib/classifier";
+import { suggestSpendClass } from "@/lib/classifier";
 import { formatMoney, fromDatetimeLocal, parseAmountInput, toDatetimeLocal } from "@/lib/format";
 import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
 import { CLASS_LABEL, type Expense, type ExpenseDraft, type MethodType, type SpendClass } from "@/lib/types";
@@ -56,6 +56,7 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
   const [classTouched, setClassTouched] = useState(Boolean(expense));
   const [error, setError] = useState("");
   const [suggested, setSuggested] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
 
@@ -187,23 +188,29 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
         ))}
       </div>
       {suggestion ? (
-        <div className="mt-3">
-          <p className="text-[13px] text-ink-muted">{formatSuggestion(suggestion)}</p>
-          {suggestion.warning ? <p className="mt-1 text-[13px]">{suggestion.warning}</p> : null}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            className="text-left text-[13px] text-ink-muted"
+            onClick={() => setAiOpen((open) => !open)}
+          >
+            AI: {CLASS_LABEL[suggestion.spendClass]} · %{Math.round(suggestion.confidence * 100)}
+          </button>
           {suggestion.spendClass !== spendClass ? (
             <button
               type="button"
-              className="mt-2 text-[13px] font-medium text-accent"
+              className="text-[13px] font-semibold"
               onClick={() => {
                 setSpendClass(suggestion.spendClass);
                 setClassTouched(true);
               }}
             >
-              {CLASS_LABEL[suggestion.spendClass]} olarak kullan
+              Uygula
             </button>
           ) : null}
         </div>
       ) : null}
+      {aiOpen && suggestion?.warning ? <p className="mt-1 text-[13px] text-ink-muted">{suggestion.warning}</p> : null}
 
       <button type="button" className="row-link mt-4" onClick={() => setCategoryOpen(true)}>
         <span>

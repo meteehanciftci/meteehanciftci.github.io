@@ -58,7 +58,6 @@ export type Expense = {
   spendClass: SpendClass;
   aiSuggestedClass?: SpendClass;
   occurredAt: number;
-  expenseDate: string;
   createdAt: number;
   note: string;
   installmentCount?: number;

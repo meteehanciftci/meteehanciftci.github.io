@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { inDateFilter, toExpenseDate } from "./format";
+import { inDateFilter } from "./format";
 import { createId } from "./ids";
 import { ledgerExpenses } from "./export";
 import { createSeedState } from "./seed";
@@ -114,7 +114,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         spendClass: input.spendClass,
         aiSuggestedClass: input.aiSuggestedClass,
         occurredAt: input.occurredAt,
-        expenseDate: toExpenseDate(input.occurredAt),
         createdAt: Date.now(),
         note: input.note.trim(),
         installmentCount:
@@ -144,8 +143,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         kind: LEDGER_KIND,
         place: patch.place ? normalizeName(patch.place) : existing.place,
         note: patch.note != null ? patch.note.trim() : existing.note,
-        occurredAt: patch.occurredAt ?? existing.occurredAt,
-        expenseDate: toExpenseDate(patch.occurredAt ?? existing.occurredAt),
         installmentCount:
           patch.installmentCount && patch.installmentCount > 1
             ? patch.installmentCount

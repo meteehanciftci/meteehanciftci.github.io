@@ -1,7 +1,7 @@
 import { migrateUnknown } from "./storage";
 import type { AppState, Category, ClassCorrection, Expense, PaymentMethod } from "./types";
 
-export const APP_VERSION = "1.3";
+export const APP_VERSION = "1.4";
 export const BACKUP_VERSION = 1;
 
 export type BackupFile = {
@@ -35,9 +35,18 @@ export function parseBackup(text: string): BackupResult {
     return { ok: false, error: "Bu yedek dosyası geçerli değil." };
   }
   const record = raw as Record<string, unknown>;
-  const payload =
-    record.data && typeof record.data === "object" ? record.data : record.backupVersion ? null : record;
-  if (!payload) return { ok: false, error: "Bu yedek dosyası geçerli değil." };
+  const wrapped = record.data && typeof record.data === "object" ? (record.data as Record<string, unknown>) : null;
+  const payload = wrapped ?? record;
+  const hasCore =
+    Array.isArray(payload.expenses) &&
+    Array.isArray(payload.categories) &&
+    Array.isArray(payload.methods) &&
+    payload.settings &&
+    typeof payload.settings === "object";
+  if (!hasCore) return { ok: false, error: "Bu yedek dosyası geçerli değil." };
+  if (wrapped && typeof record.backupVersion !== "number") {
+    return { ok: false, error: "Bu yedek dosyası geçerli değil." };
+  }
   const state = migrateUnknown(payload);
   if (!state) return { ok: false, error: "Bu yedek dosyası geçerli değil." };
   const createdAt = typeof record.createdAt === "string" ? record.createdAt : new Date().toISOString();

@@ -1,5 +1,5 @@
 import { inferLegacyClass } from "./classifier";
-import { toExpenseDate } from "./format";
+import { istanbulParts } from "./format";
 import { createSeedState, SEED_CATEGORIES } from "./seed";
 import { LEDGER_KIND, type AppState, type MethodType, type PaymentMethod, type SpendClass } from "./types";
 
@@ -103,8 +103,7 @@ export function migrateUnknown(raw: unknown): AppState | null {
         amount: Number(expense.amount) || 0,
         categoryId: String(expense.categoryId ?? categories[0]?.id ?? ""),
         methodId: String(expense.methodId ?? methods[0]?.id ?? ""),
-        occurredAt: when.occurredAt,
-        expenseDate: when.expenseDate,
+        occurredAt: when,
         createdAt,
         note: String(expense.note ?? ""),
         installmentCount:
@@ -154,6 +153,9 @@ export function migrateUnknown(raw: unknown): AppState | null {
 }
 
 function resolveWhen(expense: Record<string, unknown>, createdAt: number) {
+  if (Number.isFinite(Number(expense.occurredAt)) && Number(expense.occurredAt) > 0) {
+    return Number(expense.occurredAt);
+  }
   const rawDate =
     typeof expense.expenseDate === "string"
       ? expense.expenseDate
@@ -163,10 +165,9 @@ function resolveWhen(expense: Record<string, unknown>, createdAt: number) {
   if (rawDate) {
     const iso = rawDate.length === 10 ? `${rawDate}T12:00:00` : rawDate.slice(0, 19);
     const occurredAt = Date.parse(`${iso}+03:00`);
-    if (Number.isFinite(occurredAt)) return { occurredAt, expenseDate: iso };
+    if (Number.isFinite(occurredAt)) return occurredAt;
   }
-  const occurredAt = Number(expense.occurredAt) || createdAt;
-  return { occurredAt, expenseDate: toExpenseDate(occurredAt) };
+  return createdAt;
 }
 
 export const META_KEY = "harcama-defteri-meta";
@@ -287,35 +288,73 @@ export async function pullNewerFromIdb(): Promise<AppState | null> {
 }
 
 function snapshotLabel(at: number) {
-  return new Intl.DateTimeFormat("tr-TR", {
+  const parts = istanbulParts(at);
+  const now = istanbulParts();
+  const time = `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
+  if (parts.year === now.year && parts.month === now.month && parts.day === now.day) {
+    return `Bugün · ${time}`;
+  }
+  const day = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
     day: "numeric",
     month: "long",
   }).format(new Date(at));
+  return `${day} · ${time}`;
+}
+
+function readLocalSnaps(): Snapshot[] {
+  try {
+    const raw = window.localStorage.getItem(SNAP_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Snapshot[]) : [];
+    return Array.isArray(parsed) ? parsed.filter((snap) => snap?.state && snap.at) : [];
+  } catch {
+    return [];
+  }
 }
 
 async function maybeSnapshot(state: AppState, at: number) {
   try {
     const snaps = (await idbGet<Snapshot[]>(SNAP_KEY)) ?? readLocalSnaps();
-    const day = toExpenseDate(at).slice(0, 10);
-    if (snaps.some((snap) => toExpenseDate(snap.at).slice(0, 10) === day)) return;
-    const next = [{ at, label: snapshotLabel(at), state }, ...snaps].slice(0, 4);
-    window.localStorage.setItem(SNAP_KEY, JSON.stringify(next.map((snap) => ({ at: snap.at, label: snap.label }))));
+    const last = snaps[0];
+    if (last && JSON.stringify(last.state.expenses) === JSON.stringify(state.expenses) && last.state.categories.length === state.categories.length) {
+      return;
+    }
+    const next = [{ at, label: snapshotLabel(at), state }, ...snaps].slice(0, 8);
+    window.localStorage.setItem(SNAP_KEY, JSON.stringify(next));
     await idbSet(SNAP_KEY, next);
   } catch {
     /* snapshots are best-effort */
   }
 }
 
-function readLocalSnaps(): Snapshot[] {
-  return [];
-}
-
 export async function listSnapshots(): Promise<Snapshot[]> {
   try {
     const snaps = await idbGet<Snapshot[]>(SNAP_KEY);
-    return snaps ?? [];
+    if (snaps?.length) return snaps;
   } catch {
-    return [];
+    /* fall through */
+  }
+  return readLocalSnaps();
+}
+
+export async function saveFileBackup(name: string, text: string) {
+  const record = { name, text, at: Date.now() };
+  window.localStorage.setItem("harcama-file-backup", JSON.stringify(record));
+  await idbSet("file-backup", record);
+  return record;
+}
+
+export async function readFileBackup(): Promise<{ name: string; text: string; at: number } | null> {
+  try {
+    const fromIdb = await idbGet<{ name: string; text: string; at: number }>("file-backup");
+    if (fromIdb?.text) return fromIdb;
+  } catch {
+    /* local copy next */
+  }
+  try {
+    const raw = window.localStorage.getItem("harcama-file-backup");
+    return raw ? (JSON.parse(raw) as { name: string; text: string; at: number }) : null;
+  } catch {
+    return null;
   }
 }

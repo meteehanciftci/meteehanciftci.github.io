@@ -15,10 +15,7 @@ export function MonthPicker() {
 
   const years = useMemo(() => {
     const set = new Set<number>([now.year, now.year - 1, now.year - 2, view.year]);
-    for (const expense of ledger) {
-      const stamp = expense.expenseDate?.slice(0, 4);
-      if (stamp) set.add(Number(stamp));
-    }
+    for (const expense of ledger) set.add(istanbulParts(expense.occurredAt).year);
     return [...set].filter((value) => Number.isFinite(value)).sort((a, b) => b - a);
   }, [ledger, now.year, view.year]);
 

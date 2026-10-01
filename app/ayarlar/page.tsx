@@ -268,8 +268,8 @@ export default function SettingsPage() {
       <section className="mt-12">
         <h2 className="mb-2 text-[15px] font-semibold">Uygulama bilgileri</h2>
         <p className="text-sm leading-6 text-ink-muted">
-          Harcama Defteri 1.3 — AI destekli kişisel harcama defteri. Kayıtlar cihazda kalır.
-          Ay değiştirmek veriyi silmez.
+          Harcama Defteri 1.4 — kayıtlar cihazda kalır. Ay değiştirmek veriyi silmez.
+          Paylaşım iptali yedek sayılmaz.
         </p>
       </section>
     </main>

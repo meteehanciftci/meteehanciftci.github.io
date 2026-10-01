@@ -27,7 +27,7 @@ export function ExpenseSheetHost() {
           />
         ) : null}
       </Sheet>
-      <Sheet open={addOpen} title={editing ? "Düzenle" : "Harcama"} onClose={close}>
+      <Sheet open={addOpen} title={editing ? "Düzenle" : "Yeni Harcama"} onClose={close}>
         <ExpenseForm
           key={editing?.id ?? `new-${openedAt}`}
           expense={editing}

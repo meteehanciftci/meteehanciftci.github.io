@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { HBars, LineChart, Segmented, StackedMonths } from "@/components/Charts";
 import { Heatmap } from "@/components/Heatmap";
 import { MonthPicker } from "@/components/MonthPicker";
 import {
@@ -10,6 +11,7 @@ import {
   categoryBreakdown,
   classTotals,
   compareMonths,
+  dailySeries,
   heatmapDays,
   methodBreakdown,
   monthExpenses,
@@ -19,7 +21,7 @@ import {
   simulate,
   weekdayBreakdown,
 } from "@/lib/analytics";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatMonthTitle, monthAnchor } from "@/lib/format";
 import { AI_QUESTIONS, answerQuestion, shortInsights } from "@/lib/insights";
 import { useStore } from "@/lib/store";
 import { useViewMonth } from "@/lib/view-month";
@@ -46,7 +48,9 @@ export default function SummaryPage() {
   }, [ledger, view]);
   const summary = classTotals(current);
   const cats = categoryBreakdown(state, current, previous);
-  const trend = monthlyTrend(ledger, 6);
+  const anchor = monthAnchor(view.year, view.month);
+  const trend = monthlyTrend(ledger, 6, anchor);
+  const daily = dailySeries(current);
   const places = placeBreakdown(current);
   const methods = methodBreakdown(state, current);
   const weekdays = weekdayBreakdown(current);
@@ -56,8 +60,12 @@ export default function SummaryPage() {
   const sim = simulate(current, 0.2, 0.5);
   const score = balanceScore(current, previous, state.settings.goals);
   const cmp = compareMonths(ledger, view.year, view.month);
-  const insight = state.settings.aiEnabled ? shortInsights(state, current, previous, currency)[0] : "";
-  const delta = cmp.previous.total > 0 ? ((cmp.current.total - cmp.previous.total) / cmp.previous.total) * 100 : null;
+  const insight = state.settings.aiEnabled && !view.all
+    ? shortInsights(state, current, previous, currency, anchor)[0]
+    : "";
+  const delta = !view.all && cmp.previous.total > 0 ? ((cmp.current.total - cmp.previous.total) / cmp.previous.total) * 100 : null;
+  const monthName = formatMonthTitle(view.year, view.month).split(" ")[0];
+  const prevName = formatMonthTitle(cmp.prevCursor.year, cmp.prevCursor.month).split(" ")[0];
 
   return (
     <main className="px-5 pt-6 pb-8">
@@ -85,9 +93,40 @@ export default function SummaryPage() {
           <p className="mt-6 text-[15px]">
             İhtiyaç %{Math.round(summary.pct.need)} · İstek %{Math.round(summary.pct.want)} · Lüks %{Math.round(summary.pct.luxury)}
           </p>
+          <Segmented
+            parts={[
+              { id: "need", label: "İhtiyaç", value: summary.amounts.need, className: "class-bar-need" },
+              { id: "want", label: "İstek", value: summary.amounts.want, className: "class-bar-want" },
+              { id: "luxury", label: "Lüks", value: summary.amounts.luxury, className: "class-bar-luxury" },
+            ]}
+            onPick={(id) => router.push(`/liste?class=${id}`)}
+          />
+          {!view.all ? (
+            <div className="mt-8">
+              <p className="text-[13px] text-ink-muted">{monthName}</p>
+              <p className="text-[28px] font-semibold">{formatMoney(summary.total, currency)}</p>
+              {delta != null ? (
+                <p className="text-[14px] text-ink-muted">
+                  {delta > 0 ? "↑" : "↓"} %{Math.abs(delta).toFixed(1)} · {prevName}’a göre
+                </p>
+              ) : (
+                <p className="text-[14px] text-ink-muted">Önceki ayda kayıt yok.</p>
+              )}
+              <p className="mt-3 text-[14px]">İhtiyaç {formatMoney(cmp.previous.amounts.need, currency)} → {formatMoney(cmp.current.amounts.need, currency)}</p>
+              <p className="text-[14px]">İstek {formatMoney(cmp.previous.amounts.want, currency)} → {formatMoney(cmp.current.amounts.want, currency)}</p>
+              <p className="text-[14px]">Lüks {formatMoney(cmp.previous.amounts.luxury, currency)} → {formatMoney(cmp.current.amounts.luxury, currency)}</p>
+            </div>
+          ) : (
+            <p className="mt-4 text-[14px] text-ink-muted">Geçen aya göre karşılaştırma için bir ay seç.</p>
+          )}
           <p className="mt-6 text-[13px] text-ink-muted">Harcama dengesi</p>
           <p className="text-[28px] font-semibold">{score} / 100</p>
           {insight ? <p className="mt-4 text-[16px] leading-relaxed">{insight}</p> : null}
+          {flags.slice(0, 2).map((flag) => (
+            <p key={flag.expense.id} className="mt-2 text-[13px] text-ink-muted">
+              {flag.expense.place} · {formatMoney(flag.expense.amount, currency)} — {flag.message}
+            </p>
+          ))}
           <div className="mt-6">
             {methods.slice(0, 4).map((row) => (
               <p key={row.id} className="flex justify-between py-2 text-[15px]">
@@ -101,7 +140,7 @@ export default function SummaryPage() {
               <h2 className="text-[13px] text-ink-muted">Harcama AI</h2>
               <div className="mt-2">
                 {AI_QUESTIONS.map((item) => (
-                  <button key={item.id} type="button" className="row-link" onClick={() => setAnswer(answerQuestion(item.id, state, current, previous, currency))}>
+                  <button key={item.id} type="button" className="row-link" onClick={() => setAnswer(answerQuestion(item.id, state, current, previous, currency, view))}>
                     {item.label}
                   </button>
                 ))}
@@ -126,88 +165,59 @@ export default function SummaryPage() {
               </div>
             </button>
           ))}
-          <div className="pt-4">
-            {trend.map((row) => (
-              <p key={`${row.year}-${row.month}`} className="flex justify-between py-2 text-[14px]">
-                <span>{row.month}/{row.year}</span>
-                <span className="tabular-nums text-ink-muted">
-                  {formatMoney(row.amounts.need, currency)} · {formatMoney(row.amounts.want, currency)} · {formatMoney(row.amounts.luxury, currency)}
-                </span>
-              </p>
-            ))}
-          </div>
+          <StackedMonths
+            rows={trend.map((row) => ({
+              label: formatMonthTitle(row.year, row.month).slice(0, 3),
+              need: row.amounts.need,
+              want: row.amounts.want,
+              luxury: row.amounts.luxury,
+            }))}
+          />
         </section>
       ) : null}
 
       {tab === "Kategoriler" ? (
-        <ul className="mt-6">
-          {cats.map((row) => (
-            <li key={row.id}>
-              <button type="button" className="w-full py-3 text-left" onClick={() => router.push(`/liste?cat=${row.id}`)}>
-                <div className="flex justify-between">
-                  <span className="font-medium">{row.name}</span>
-                  <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
-                </div>
-                <p className="mt-1 text-[12px] text-ink-muted">
-                  %{row.pct.toFixed(0)} · {row.mom >= 0 ? "+" : ""}{row.mom.toFixed(0)}%
-                  {" · "}
-                  İhtiyaç {formatMoney(row.classes.amounts.need, currency)} · İstek {formatMoney(row.classes.amounts.want, currency)} · Lüks {formatMoney(row.classes.amounts.luxury, currency)}
-                </p>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <section className="mt-8">
+          <p className="text-[13px] text-ink-muted">En büyük kategori</p>
+          <p className="text-[28px] font-semibold">{cats[0] ? formatMoney(cats[0].amount, currency) : formatMoney(0, currency)}</p>
+          <p className="text-[14px] text-ink-muted">{cats[0]?.name ?? "Kayıt yok"}</p>
+          <HBars
+            format={(value) => formatMoney(value, currency)}
+            onPick={(id) => router.push(`/liste?cat=${id}`)}
+            rows={cats.slice(0, 8).map((row) => ({ id: row.id, label: row.name, value: row.amount }))}
+          />
+        </section>
       ) : null}
 
       {tab === "Zaman" ? (
         <section className="mt-6 space-y-8">
+          <div>
+            <p className="text-[13px] text-ink-muted">Ay içi</p>
+            <LineChart points={daily.map(([day, value]) => ({ label: String(day), value }))} />
+          </div>
+          <HBars
+            format={(value) => formatMoney(value, currency)}
+            rows={weekdays.map((row) => ({ id: String(row.weekday), label: row.label, value: row.total }))}
+          />
           <Heatmap {...heat} currency={currency} />
-          <div>
-            {weekdays.map((row) => (
-              <p key={row.weekday} className="flex justify-between py-1.5 text-[15px]">
-                <span>{row.label}</span>
-                <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
-              </p>
-            ))}
-          </div>
-          <div>
-            {thirds.map((row) => (
-              <p key={row.id} className="flex justify-between py-1.5 text-[15px]">
-                <span>{row.label}</span>
-                <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
-              </p>
-            ))}
-          </div>
-          <div>
-            {trend.map((row) => (
-              <p key={`${row.year}-${row.month}`} className="flex justify-between py-1.5 text-[15px]">
-                <span>{row.month}.{row.year}</span>
-                <span className="tabular-nums">{formatMoney(row.total, currency)}</span>
-              </p>
-            ))}
-          </div>
-          {flags.slice(0, 3).map((flag) => (
-            <p key={flag.expense.id} className="text-[14px] text-ink-muted">
-              {flag.expense.place} · {formatMoney(flag.expense.amount, currency)} — {flag.message}
-            </p>
-          ))}
+          <HBars
+            format={(value) => formatMoney(value, currency)}
+            rows={thirds.map((row) => ({ id: row.id, label: row.label, value: row.total }))}
+          />
         </section>
       ) : null}
 
       {tab === "İşletmeler" ? (
-        <ul className="mt-4">
-          {places.slice(0, 12).map((row) => (
-            <li key={row.place}>
-              <button type="button" className="row-link" onClick={() => router.push(`/liste?place=${encodeURIComponent(row.place)}`)}>
-                <span>
-                  {row.place}
-                  <span className="ml-2 text-[12px] text-ink-muted">{row.count}</span>
-                </span>
-                <span className="tabular-nums">{formatMoney(row.amount, currency)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <section className="mt-6">
+          <p className="text-[13px] text-ink-muted">En yüksek işletme</p>
+          <p className="text-[28px] font-semibold">{places[0] ? formatMoney(places[0].amount, currency) : formatMoney(0, currency)}</p>
+          <p className="text-[14px] text-ink-muted">{places[0]?.place ?? "Kayıt yok"}</p>
+          <HBars
+            format={(value) => formatMoney(value, currency)}
+            onPick={(id) => router.push(`/liste?place=${encodeURIComponent(id)}`)}
+            rows={places.slice(0, 8).map((row) => ({ id: row.place, label: row.place, value: row.amount }))}
+          />
+        </section>
       ) : null}
     </main>
   );

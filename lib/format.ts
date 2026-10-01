@@ -237,15 +237,11 @@ export function toExpenseDate(ts: number): string {
   return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:00`;
 }
 
-export function expenseInMonth(
-  expense: { occurredAt: number; expenseDate?: string },
-  year: number,
-  month: number,
-) {
-  const key = `${year}-${pad(month)}`;
-  if (expense.expenseDate && expense.expenseDate.length >= 7) {
-    return expense.expenseDate.slice(0, 7) === key;
-  }
+export function expenseInMonth(expense: { occurredAt: number }, year: number, month: number) {
   const parts = istanbulParts(expense.occurredAt);
   return parts.year === year && parts.month === month;
+}
+
+export function monthAnchor(year: number, month: number) {
+  return Date.parse(`${year}-${pad(month)}-15T12:00:00+03:00`);
 }
