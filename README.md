@@ -31,6 +31,8 @@ npx serve out
 
 ## Android APK (tablet)
 
+Hazır APK: [public/harcama-defteri.apk](./public/harcama-defteri.apk)
+
 Tablete yüklemek için debug APK’yı indirin ve “bilinmeyen kaynaklar”a izin vererek kurun.
 
 ```bash

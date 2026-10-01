@@ -20,6 +20,7 @@
 # production
 /build
 *.apk
+!public/harcama-defteri.apk
 *.aab
 android/.gradle
 android/app/build
