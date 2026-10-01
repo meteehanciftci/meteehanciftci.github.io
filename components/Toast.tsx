@@ -24,7 +24,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className={`pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4 transition-all duration-200 ${
+        className={`pointer-events-none fixed inset-x-0 z-[80] flex justify-center px-4 transition-all duration-200 ${
           message ? "bottom-24 opacity-100" : "bottom-20 opacity-0"
         }`}
       >

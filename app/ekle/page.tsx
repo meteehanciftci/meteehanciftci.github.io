@@ -1,33 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ExpenseForm } from "@/components/ExpenseForm";
-import { useToast } from "@/components/Toast";
-import { useStore } from "@/lib/store";
+import { useEffect } from "react";
+import { useExpenseSheet } from "@/components/ExpenseSheetContext";
 
-export default function AddExpensePage() {
-  const router = useRouter();
-  const { addExpense } = useStore();
-  const { showToast } = useToast();
+export default function AddPage() {
+  const { openAdd, close, addOpen } = useExpenseSheet();
+  useEffect(() => {
+    openAdd();
+    return () => close();
+  }, [openAdd, close]);
 
+  if (addOpen) return null;
   return (
-    <main className="px-5 pt-6">
-      <header className="mb-8 flex items-center justify-between">
-        <Link href="/" className="text-sm text-ink-muted">
-          Geri
-        </Link>
-        <h1 className="text-[17px] font-semibold">Harcama Ekle</h1>
-        <span className="w-8" />
-      </header>
-      <ExpenseForm
-        submitLabel="Kaydet"
-        onSubmit={(values) => {
-          addExpense(values);
-          showToast("Harcama kaydedildi.");
-          router.push("/");
-        }}
-      />
-    </main>
+    <main className="px-5 pt-10 text-sm text-ink-muted">Harcama ekleniyor…</main>
   );
 }

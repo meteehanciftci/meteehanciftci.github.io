@@ -27,7 +27,7 @@ npx serve out
 5. **Özet** — seçilen ayın toplamı ve kırılımlar.
 6. **Ayarlar** — kategori ve ödeme yöntemlerini yönetin.
 
-İlk açılışta örnek harcamalar yüklenir.
+İlk açılışta örnek harcamalar yüklenir. Kayıtlar yalnızca elle eklenen gerçek harcamalardır (transfer, kart ödemesi, ekstre içe aktarma yok).
 
 ## Android APK (tablet)
 

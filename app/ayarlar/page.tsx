@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useSortedMethods, useStore } from "@/lib/store";
+import { useRef, useState } from "react";
+import { backupJson, downloadText, exportCsv } from "@/lib/export";
+import { loadState } from "@/lib/storage";
+import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
+import type { CurrencyCode, MethodType, ThemePreference } from "@/lib/types";
+
+const METHOD_TYPES: { id: MethodType; label: string }[] = [
+  { id: "credit", label: "Kredi Kartı" },
+  { id: "debit", label: "Banka Kartı / Hesap" },
+  { id: "cash", label: "Nakit" },
+];
 
 export default function SettingsPage() {
   const {
@@ -9,33 +18,129 @@ export default function SettingsPage() {
     addCategory,
     updateCategory,
     deleteCategory,
+    moveCategory,
     addMethod,
     updateMethod,
     deleteMethod,
+    updateSettings,
+    importBackup,
   } = useStore();
   const methods = useSortedMethods();
+  const categories = useSortedCategories();
   const [newCategory, setNewCategory] = useState("");
-  const [newMethod, setNewMethod] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [newType, setNewType] = useState<MethodType>("credit");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   return (
-    <main className="px-5 pt-8">
+    <main className="px-5 pt-8 pb-8">
       <p className="text-[13px] font-medium text-ink-muted">Ayarlar</p>
       <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Defter</h1>
 
       <section className="mt-10">
+        <h2 className="mb-3 text-[15px] font-semibold">Ödeme yöntemleri</h2>
+        <ul className="space-y-3">
+          {methods.map((method) => (
+            <li key={method.id} className="rounded-2xl border border-line bg-[color:var(--white)] p-3">
+              <input
+                className="field"
+                defaultValue={method.name}
+                aria-label={`${method.name} adı`}
+                onBlur={(event) => updateMethod(method.id, { name: event.target.value })}
+              />
+              <div className="mt-2 flex gap-2">
+                <input
+                  className="field"
+                  defaultValue={method.code}
+                  aria-label={`${method.name} kodu`}
+                  onBlur={(event) => updateMethod(method.id, { code: event.target.value })}
+                />
+                <select
+                  className="field"
+                  defaultValue={method.type}
+                  onChange={(event) =>
+                    updateMethod(method.id, { type: event.target.value as MethodType })
+                  }
+                >
+                  {METHOD_TYPES.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="mt-2 text-sm text-ink-muted"
+                onClick={() => deleteMethod(method.id)}
+                disabled={state.methods.length <= 1}
+              >
+                Sil
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 space-y-2">
+          <input
+            className="field"
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            placeholder="Yöntem adı"
+          />
+          <div className="flex gap-2">
+            <input
+              className="field"
+              value={newCode}
+              onChange={(event) => setNewCode(event.target.value.toUpperCase())}
+              placeholder="Kod"
+            />
+            <select
+              className="field"
+              value={newType}
+              onChange={(event) => setNewType(event.target.value as MethodType)}
+            >
+              {METHOD_TYPES.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              if (addMethod({ name: newName, code: newCode, type: newType })) {
+                setNewName("");
+                setNewCode("");
+              }
+            }}
+          >
+            Yöntem ekle
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-12">
         <h2 className="mb-3 text-[15px] font-semibold">Kategoriler</h2>
         <ul className="space-y-2">
-          {state.categories.map((category) => (
-            <li key={category.id} className="flex gap-2">
+          {categories.map((category) => (
+            <li key={category.id} className="flex items-center gap-2">
               <input
                 className="field"
                 defaultValue={category.name}
-                aria-label={`${category.name} adını düzenle`}
                 onBlur={(event) => updateCategory(category.id, event.target.value)}
               />
+              <button type="button" className="text-ink-muted" onClick={() => moveCategory(category.id, -1)}>
+                ↑
+              </button>
+              <button type="button" className="text-ink-muted" onClick={() => moveCategory(category.id, 1)}>
+                ↓
+              </button>
               <button
                 type="button"
-                className="shrink-0 px-2 text-sm text-ink-muted"
+                className="text-sm text-ink-muted"
                 onClick={() => deleteCategory(category.id)}
                 disabled={state.categories.length <= 1}
               >
@@ -49,7 +154,7 @@ export default function SettingsPage() {
             className="field"
             value={newCategory}
             onChange={(event) => setNewCategory(event.target.value)}
-            placeholder="Yeni kategori"
+            placeholder="+ Yeni kategori"
           />
           <button
             type="button"
@@ -64,47 +169,94 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="mb-1 text-[15px] font-semibold">Ödeme yöntemleri</h2>
-        <p className="mb-3 text-[13px] text-ink-muted">
-          Sıra, son kullanıma göredir.
-        </p>
-        <ul className="space-y-2">
-          {methods.map((method) => (
-            <li key={method.id} className="flex gap-2">
-              <input
-                className="field"
-                defaultValue={method.name}
-                aria-label={`${method.name} adını düzenle`}
-                onBlur={(event) => updateMethod(method.id, event.target.value)}
-              />
-              <button
-                type="button"
-                className="shrink-0 px-2 text-sm text-ink-muted"
-                onClick={() => deleteMethod(method.id)}
-                disabled={state.methods.length <= 1}
-              >
-                Sil
-              </button>
-            </li>
+        <h2 className="mb-3 text-[15px] font-semibold">Para birimi</h2>
+        <div className="flex flex-wrap gap-2">
+          {(["TRY", "EUR", "USD"] as CurrencyCode[]).map((code) => (
+            <button
+              key={code}
+              type="button"
+              className={state.settings.currency === code ? "chip chip-active" : "chip"}
+              onClick={() => updateSettings({ currency: code })}
+            >
+              {code === "TRY" ? "₺ TRY" : code}
+            </button>
           ))}
-        </ul>
-        <div className="mt-3 flex gap-2">
-          <input
-            className="field"
-            value={newMethod}
-            onChange={(event) => setNewMethod(event.target.value)}
-            placeholder="Yeni yöntem"
-          />
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="mb-3 text-[15px] font-semibold">Tema</h2>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ["system", "Sistem"],
+              ["light", "Açık"],
+              ["dark", "Koyu"],
+            ] as [ThemePreference, string][]
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={state.settings.theme === id ? "chip chip-active" : "chip"}
+              onClick={() => updateSettings({ theme: id })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="mb-3 text-[15px] font-semibold">Verileri dışa aktar</h2>
+        <div className="flex flex-col gap-2">
           <button
             type="button"
-            className="btn-secondary"
-            onClick={() => {
-              if (addMethod(newMethod)) setNewMethod("");
-            }}
+            className="btn-secondary w-full"
+            onClick={() => downloadText("harcama-defteri.csv", exportCsv(state), "text/csv;charset=utf-8")}
           >
-            Ekle
+            CSV indir
           </button>
         </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="mb-3 text-[15px] font-semibold">Yedekleme</h2>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            className="btn-secondary w-full"
+            onClick={() =>
+              downloadText("harcama-defteri-yedek.json", backupJson(state), "application/json")
+            }
+          >
+            JSON yedek al
+          </button>
+          <button type="button" className="btn-secondary w-full" onClick={() => fileRef.current?.click()}>
+            Yedekten geri yükle
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              const text = await file.text();
+              window.localStorage.setItem("harcama-defteri-v2", text);
+              importBackup(loadState());
+              event.target.value = "";
+            }}
+          />
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="mb-2 text-[15px] font-semibold">Uygulama bilgileri</h2>
+        <p className="text-sm leading-6 text-ink-muted">
+          Harcama Defteri 1.1 — yalnızca elle eklenen gerçek harcamalar. Çevrimdışı çalışır.
+          Kredi kartı ödemesi, transfer veya ekstre bu listede yer almaz.
+        </p>
       </section>
     </main>
   );

@@ -1,68 +1,73 @@
 "use client";
 
 import Link from "next/link";
-import { ExpenseRow } from "@/components/ExpenseRow";
-import { formatLira, formatMonthTitle, istanbulParts } from "@/lib/format";
-import { monthTotal, useStore } from "@/lib/store";
+import { FilterSheet } from "@/components/FilterSheet";
+import { GroupedExpenseList } from "@/components/GroupedExpenseList";
+import { useExpenseSheet } from "@/components/ExpenseSheetContext";
+import { formatMoney } from "@/lib/format";
+import { filterExpenses, monthTotal, todayTotal, useStore } from "@/lib/store";
+import { useState } from "react";
+import type { ExpenseFilters } from "@/lib/types";
+
+const emptyFilters = (): ExpenseFilters => ({
+  query: "",
+  date: "all",
+  categoryId: "",
+  methodId: "",
+  minAmount: "",
+  maxAmount: "",
+});
 
 export default function HomePage() {
-  const { state } = useStore();
-  const now = istanbulParts();
-  const total = monthTotal(state.expenses);
-  const recent = [...state.expenses]
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, 8);
+  const { state, ledger } = useStore();
+  const { openAdd } = useExpenseSheet();
+  const [filters, setFilters] = useState<ExpenseFilters>(emptyFilters);
+  const month = monthTotal(ledger);
+  const today = todayTotal(ledger);
+  const recent = filterExpenses(ledger, filters, state)
+    .sort((a, b) => b.occurredAt - a.occurredAt)
+    .slice(0, 12);
 
   return (
     <main className="px-5 pt-8">
-      <p className="text-[13px] font-medium tracking-wide text-ink-muted">
-        Harcama Defteri
-      </p>
-      <h1 className="mt-6 text-[15px] font-medium text-ink-muted">Bu Ay</h1>
-      <p className="mt-1 text-[40px] font-semibold leading-none tracking-tight">
-        {formatLira(total)}
-      </p>
-      <p className="mt-2 text-sm text-ink-muted">
-        {formatMonthTitle(now.year, now.month)}
-      </p>
-
-      <div className="mt-8">
-        <Link href="/ekle" className="btn-primary">
-          + Harcama Ekle
-        </Link>
+      <p className="text-[13px] font-medium tracking-wide text-ink-muted">Harcama Defteri</p>
+      <div className="mt-6 grid grid-cols-2 gap-8">
+        <div>
+          <p className="text-[15px] text-ink-muted">Bu Ay</p>
+          <p className="mt-1 text-[32px] font-semibold leading-none tracking-tight">
+            {formatMoney(month, state.settings.currency)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[15px] text-ink-muted">Bugün</p>
+          <p className="mt-1 text-[32px] font-semibold leading-none tracking-tight">
+            {formatMoney(today, state.settings.currency)}
+          </p>
+        </div>
       </div>
 
-      <section className="mt-10">
-        <div className="mb-1 flex items-baseline justify-between">
+      <button type="button" className="btn-primary mt-8" onClick={openAdd}>
+        + Harcama Ekle
+      </button>
+
+      <div className="mt-8 flex gap-2">
+        <input
+          className="field min-w-0 flex-1"
+          value={filters.query}
+          onChange={(event) => setFilters({ ...filters, query: event.target.value })}
+          placeholder="Ara — Migros, EPK, not…"
+        />
+        <FilterSheet value={filters} onChange={setFilters} />
+      </div>
+
+      <section className="mt-4">
+        <div className="flex items-baseline justify-between">
           <h2 className="text-[15px] font-semibold">Son harcamalar</h2>
-          <Link
-            href="/liste"
-            className="text-[13px] font-medium text-ink-muted underline-offset-2 hover:underline"
-          >
+          <Link href="/liste" className="text-[13px] font-medium text-ink-muted">
             Tümü
           </Link>
         </div>
-        {recent.length === 0 ? (
-          <p className="py-10 text-sm text-ink-muted">
-            Henüz harcama yok. İlk kaydı ekleyin.
-          </p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {recent.map((expense) => (
-              <li key={expense.id}>
-                <ExpenseRow
-                  expense={expense}
-                  category={state.categories.find(
-                    (category) => category.id === expense.categoryId,
-                  )}
-                  method={state.methods.find(
-                    (method) => method.id === expense.methodId,
-                  )}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <GroupedExpenseList expenses={recent} />
       </section>
     </main>
   );

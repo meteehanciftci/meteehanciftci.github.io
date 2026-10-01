@@ -1,25 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { ExpenseRow } from "@/components/ExpenseRow";
+import { FilterSheet } from "@/components/FilterSheet";
+import { GroupedExpenseList } from "@/components/GroupedExpenseList";
+import { useExpenseSheet } from "@/components/ExpenseSheetContext";
 import { filterExpenses, useStore } from "@/lib/store";
-import type { DateFilter } from "@/lib/types";
+import type { ExpenseFilters } from "@/lib/types";
 
 export default function ListPage() {
-  const { state } = useStore();
-  const [query, setQuery] = useState("");
-  const [date, setDate] = useState<DateFilter>("all");
-  const [categoryId, setCategoryId] = useState("");
-  const [methodId, setMethodId] = useState("");
-
-  const items = useMemo(
-    () =>
-      filterExpenses(
-        [...state.expenses].sort((a, b) => b.createdAt - a.createdAt),
-        { query, date, categoryId, methodId },
-      ),
-    [state.expenses, query, date, categoryId, methodId],
+  const { state, ledger } = useStore();
+  const { openAdd } = useExpenseSheet();
+  const [filters, setFilters] = useState<ExpenseFilters>({
+    query: "",
+    date: "all",
+    categoryId: "",
+    methodId: "",
+    minAmount: "",
+    maxAmount: "",
+  });
+  const items = filterExpenses(ledger, filters, state).sort(
+    (a, b) => b.occurredAt - a.occurredAt,
   );
 
   return (
@@ -28,80 +29,22 @@ export default function ListPage() {
         <Link href="/" className="text-sm text-ink-muted">
           Geri
         </Link>
-        <h1 className="text-[17px] font-semibold">Tüm harcamalar</h1>
-        <Link href="/ekle" className="text-sm font-medium">
+        <h1 className="text-[17px] font-semibold">Harcamalar</h1>
+        <button type="button" className="text-sm font-medium" onClick={openAdd}>
           Ekle
-        </Link>
+        </button>
       </header>
-
-      <label className="sr-only" htmlFor="search">
-        Ara
-      </label>
-      <input
-        id="search"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Ara — Migros, Shell…"
-        className="field"
-      />
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <select
-          className="select"
-          value={date}
-          onChange={(event) => setDate(event.target.value as DateFilter)}
-          aria-label="Tarih filtresi"
-        >
-          <option value="all">Tüm tarihler</option>
-          <option value="this-month">Bu ay</option>
-          <option value="last-month">Geçen ay</option>
-          <option value="this-year">Bu yıl</option>
-        </select>
-        <select
-          className="select"
-          value={categoryId}
-          onChange={(event) => setCategoryId(event.target.value)}
-          aria-label="Kategori filtresi"
-        >
-          <option value="">Tüm kategoriler</option>
-          {state.categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="select"
-          value={methodId}
-          onChange={(event) => setMethodId(event.target.value)}
-          aria-label="Ödeme yöntemi filtresi"
-        >
-          <option value="">Tüm ödemeler</option>
-          {state.methods.map((method) => (
-            <option key={method.id} value={method.id}>
-              {method.name}
-            </option>
-          ))}
-        </select>
+      <div className="flex gap-2">
+        <input
+          id="search"
+          className="field min-w-0 flex-1"
+          value={filters.query}
+          onChange={(event) => setFilters({ ...filters, query: event.target.value })}
+          placeholder="Ara — yer, kategori, EPK, not"
+        />
+        <FilterSheet value={filters} onChange={setFilters} />
       </div>
-
-      {items.length === 0 ? (
-        <p className="py-12 text-sm text-ink-muted">Eşleşen harcama yok.</p>
-      ) : (
-        <ul className="mt-2 divide-y divide-line">
-          {items.map((expense) => (
-            <li key={expense.id}>
-              <ExpenseRow
-                expense={expense}
-                category={state.categories.find(
-                  (category) => category.id === expense.categoryId,
-                )}
-                method={state.methods.find((method) => method.id === expense.methodId)}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
+      <GroupedExpenseList expenses={items} />
     </main>
   );
 }

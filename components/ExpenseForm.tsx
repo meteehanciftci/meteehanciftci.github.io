@@ -1,36 +1,57 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { parseAmountInput } from "@/lib/format";
-import { useSortedMethods, useStore } from "@/lib/store";
-import type { Expense } from "@/lib/types";
+import { fromDatetimeLocal, parseAmountInput, toDatetimeLocal } from "@/lib/format";
+import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
+import type { Expense, ExpenseDraft, MethodType } from "@/lib/types";
+
+const METHOD_TYPES: { id: MethodType; label: string }[] = [
+  { id: "credit", label: "Kredi Kartı" },
+  { id: "debit", label: "Banka" },
+  { id: "cash", label: "Nakit" },
+];
 
 type Props = {
-  expense?: Expense;
-  submitLabel: string;
-  onSubmit: (values: {
-    place: string;
-    amount: number;
-    categoryId: string;
-    methodId: string;
-  }) => void;
+  expense?: Expense | null;
+  submitLabel?: string;
+  onSubmit: (values: ExpenseDraft) => void;
   onDelete?: () => void;
 };
 
-export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props) {
-  const { state, places, suggestionForPlace, addMethod } = useStore();
+export function ExpenseForm({ expense, submitLabel = "Kaydet", onSubmit, onDelete }: Props) {
+  const { places, suggestionForPlace, addMethod, addCategory } = useStore();
   const methods = useSortedMethods();
+  const categories = useSortedCategories();
+  const nakit = methods.find((method) => method.type === "cash") ?? methods[0];
+
   const [place, setPlace] = useState(expense?.place ?? "");
   const [amount, setAmount] = useState(
     expense ? String(expense.amount).replace(".", ",") : "",
   );
   const [categoryId, setCategoryId] = useState(expense?.categoryId ?? "");
-  const [methodId, setMethodId] = useState(expense?.methodId ?? "");
+  const [methodId, setMethodId] = useState(expense?.methodId ?? nakit?.id ?? "");
+  const [occurredAt, setOccurredAt] = useState(
+    expense ? toDatetimeLocal(expense.occurredAt) : "",
+  );
+  const [note, setNote] = useState(expense?.note ?? "");
+  const [installmentsOn, setInstallmentsOn] = useState(
+    Boolean(expense?.installmentCount && expense.installmentCount > 1),
+  );
+  const [installmentCount, setInstallmentCount] = useState(
+    String(expense?.installmentCount && expense.installmentCount > 1 ? expense.installmentCount : 2),
+  );
   const [showPlaces, setShowPlaces] = useState(false);
   const [addingMethod, setAddingMethod] = useState(false);
-  const [newMethod, setNewMethod] = useState("");
+  const [newMethodName, setNewMethodName] = useState("");
+  const [newMethodCode, setNewMethodCode] = useState("");
+  const [newMethodType, setNewMethodType] = useState<MethodType>("credit");
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
   const [error, setError] = useState("");
   const [suggested, setSuggested] = useState(false);
+
+  const selectedMethod = methods.find((method) => method.id === methodId);
+  const isCredit = selectedMethod?.type === "credit";
 
   const placeOptions = useMemo(() => {
     const q = place.trim().toLocaleLowerCase("tr-TR");
@@ -59,21 +80,13 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
     event.preventDefault();
     const cleanPlace = place.trim();
     const parsed = parseAmountInput(amount);
-    if (!cleanPlace) {
-      setError("Harcama yeri girin.");
-      return;
-    }
-    if (parsed == null) {
-      setError("Geçerli bir miktar girin.");
-      return;
-    }
-    if (!methodId) {
-      setError("Ödeme yöntemi seçin.");
-      return;
-    }
-    if (!categoryId) {
-      setError("Kategori seçin.");
-      return;
+    if (!cleanPlace) return setError("Harcama yeri girin.");
+    if (parsed == null) return setError("Geçerli bir tutar girin.");
+    if (!methodId) return setError("Ödeme yöntemi seçin.");
+    if (!categoryId) return setError("Kategori seçin.");
+    const count = isCredit && installmentsOn ? Number(installmentCount) : undefined;
+    if (count != null && (!Number.isInteger(count) || count < 2)) {
+      return setError("Taksit sayısı en az 2 olmalı.");
     }
     setError("");
     onSubmit({
@@ -81,23 +94,14 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
       amount: parsed,
       categoryId,
       methodId,
+      occurredAt: fromDatetimeLocal(occurredAt || toDatetimeLocal(Date.now())),
+      note,
+      installmentCount: count,
     });
   }
 
-  function handleAddMethod() {
-    const created = addMethod(newMethod);
-    if (!created) {
-      setError("Bu ödeme yöntemi zaten var veya boş.");
-      return;
-    }
-    setMethodId(created.id);
-    setNewMethod("");
-    setAddingMethod(false);
-    setSuggested(false);
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <label className="block">
         <span className="mb-2 block text-[13px] font-medium text-ink-muted">
           Harcama Yeri
@@ -108,16 +112,17 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
           onFocus={() => setShowPlaces(true)}
           onBlur={() => window.setTimeout(() => setShowPlaces(false), 120)}
           autoComplete="off"
-          placeholder="Migros, Shell, Starbucks"
+          autoFocus={!expense}
+          placeholder="Migros"
           className="field"
         />
         {showPlaces && placeOptions.length > 0 ? (
-          <ul className="mt-2 overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
+          <ul className="mt-2 overflow-hidden rounded-2xl border border-line bg-white dark:bg-[#1c1c1e]">
             {placeOptions.map((item) => (
               <li key={item}>
                 <button
                   type="button"
-                  className="w-full px-4 py-2.5 text-left text-[15px] hover:bg-canvas"
+                  className="w-full px-4 py-2.5 text-left text-[15px]"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => {
                     handlePlaceChange(item);
@@ -133,36 +138,19 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
       </label>
 
       <label className="block">
-        <span className="mb-2 block text-[13px] font-medium text-ink-muted">
-          Harcama Miktarı
-        </span>
+        <span className="mb-2 block text-[13px] font-medium text-ink-muted">Tutar</span>
         <div className="relative">
           <input
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
             onFocus={(event) => event.currentTarget.select()}
-            onBlur={() => {
-              const parsed = parseAmountInput(amount);
-              if (parsed != null) {
-                setAmount(
-                  parsed.toLocaleString("tr-TR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }),
-                );
-              }
-            }}
             inputMode="decimal"
-            enterKeyHint="done"
-            placeholder="1.250,00"
+            enterKeyHint="next"
+            placeholder="1.250"
             className="field pr-12 tabular-nums"
-            aria-describedby="amount-suffix"
           />
-          <span
-            id="amount-suffix"
-            className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-ink-muted"
-          >
-            TL
+          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-ink-muted">
+            ₺
           </span>
         </div>
       </label>
@@ -170,9 +158,7 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink-muted">
           Ödeme Yöntemi
-          {suggested ? (
-            <span className="ml-2 font-normal text-accent">Önerildi</span>
-          ) : null}
+          {suggested ? <span className="ml-2 font-normal text-accent">Önerildi</span> : null}
         </legend>
         <div className="flex flex-wrap gap-2">
           {methods.map((method) => (
@@ -182,44 +168,113 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
               onClick={() => {
                 setMethodId(method.id);
                 setSuggested(false);
+                if (method.type !== "credit") setInstallmentsOn(false);
               }}
               className={method.id === methodId ? "chip chip-active" : "chip"}
             >
-              {method.name}
+              {method.code}
             </button>
           ))}
-          <button
-            type="button"
-            className="chip"
-            onClick={() => setAddingMethod((open) => !open)}
-          >
+          <button type="button" className="chip" onClick={() => setAddingMethod((open) => !open)}>
             + Yeni
           </button>
         </div>
+        {selectedMethod ? (
+          <p className="mt-2 text-[13px] text-ink-muted">{selectedMethod.name}</p>
+        ) : null}
         {addingMethod ? (
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 space-y-2">
             <input
-              value={newMethod}
-              onChange={(event) => setNewMethod(event.target.value)}
-              placeholder="Yöntem adı"
               className="field"
+              value={newMethodName}
+              onChange={(event) => setNewMethodName(event.target.value)}
+              placeholder="Enpara Kredi Kartı"
             />
-            <button type="button" className="btn-secondary shrink-0" onClick={handleAddMethod}>
-              Ekle
+            <div className="flex gap-2">
+              <input
+                className="field"
+                value={newMethodCode}
+                onChange={(event) => setNewMethodCode(event.target.value.toUpperCase())}
+                placeholder="EPK"
+              />
+              <select
+                className="field w-auto"
+                value={newMethodType}
+                onChange={(event) => setNewMethodType(event.target.value as MethodType)}
+              >
+                {METHOD_TYPES.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                const created = addMethod({
+                  name: newMethodName,
+                  code: newMethodCode,
+                  type: newMethodType,
+                });
+                if (!created) {
+                  setError("Yöntem adı veya kod kullanılıyor.");
+                  return;
+                }
+                setMethodId(created.id);
+                setAddingMethod(false);
+                setNewMethodName("");
+                setNewMethodCode("");
+              }}
+            >
+              Yöntemi ekle
             </button>
           </div>
         ) : null}
       </fieldset>
 
+      {isCredit ? (
+        <fieldset>
+          <legend className="mb-2 text-[13px] font-medium text-ink-muted">Taksitli mi?</legend>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={!installmentsOn ? "chip chip-active" : "chip"}
+              onClick={() => setInstallmentsOn(false)}
+            >
+              Hayır
+            </button>
+            <button
+              type="button"
+              className={installmentsOn ? "chip chip-active" : "chip"}
+              onClick={() => setInstallmentsOn(true)}
+            >
+              Evet
+            </button>
+          </div>
+          {installmentsOn ? (
+            <label className="mt-3 block">
+              <span className="mb-2 block text-[13px] text-ink-muted">Taksit sayısı</span>
+              <input
+                className="field tabular-nums"
+                inputMode="numeric"
+                value={installmentCount}
+                onChange={(event) => setInstallmentCount(event.target.value)}
+                placeholder="6"
+              />
+            </label>
+          ) : null}
+        </fieldset>
+      ) : null}
+
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink-muted">
           Kategori
-          {suggested ? (
-            <span className="ml-2 font-normal text-accent">Önerildi</span>
-          ) : null}
+          {suggested ? <span className="ml-2 font-normal text-accent">Önerildi</span> : null}
         </legend>
         <div className="flex flex-wrap gap-2">
-          {state.categories.map((category) => (
+          {categories.map((category) => (
             <button
               key={category.id}
               type="button"
@@ -232,8 +287,57 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
               {category.name}
             </button>
           ))}
+          <button type="button" className="chip" onClick={() => setAddingCategory((open) => !open)}>
+            + Yeni Kategori
+          </button>
         </div>
+        {addingCategory ? (
+          <div className="mt-3 flex gap-2">
+            <input
+              className="field"
+              value={newCategory}
+              onChange={(event) => setNewCategory(event.target.value)}
+              placeholder="Kategori adı"
+            />
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                const created = addCategory(newCategory);
+                if (!created) return;
+                setCategoryId(created.id);
+                setNewCategory("");
+                setAddingCategory(false);
+              }}
+            >
+              Ekle
+            </button>
+          </div>
+        ) : null}
       </fieldset>
+
+      <label className="block">
+        <span className="mb-2 block text-[13px] font-medium text-ink-muted">Tarih</span>
+        <input
+          type="datetime-local"
+          className="field"
+          value={occurredAt}
+          onFocus={() => {
+            if (!occurredAt) setOccurredAt(toDatetimeLocal(Date.now()));
+          }}
+          onChange={(event) => setOccurredAt(event.target.value)}
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-2 block text-[13px] font-medium text-ink-muted">Not</span>
+        <input
+          className="field"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="İsteğe bağlı"
+        />
+      </label>
 
       {error ? (
         <p className="text-sm text-red-600" role="alert">
@@ -241,16 +345,14 @@ export function ExpenseForm({ expense, submitLabel, onSubmit, onDelete }: Props)
         </p>
       ) : null}
 
-      <div className="sticky bottom-[calc(4.85rem+env(safe-area-inset-bottom))] z-20 -mx-5 space-y-1 border-t border-line/70 bg-canvas/95 px-5 py-3 backdrop-blur-sm">
-        <button type="submit" className="btn-primary">
-          {submitLabel}
+      <button type="submit" className="btn-primary">
+        {submitLabel}
+      </button>
+      {onDelete ? (
+        <button type="button" className="btn-danger" onClick={onDelete}>
+          Sil
         </button>
-        {onDelete ? (
-          <button type="button" className="btn-danger mt-1" onClick={onDelete}>
-            Sil
-          </button>
-        ) : null}
-      </div>
+      ) : null}
     </form>
   );
 }

@@ -1,12 +1,22 @@
 @import "tailwindcss";
 
-:root {
+:root,
+html[data-theme="light"] {
   --canvas: #f4f1ec;
   --white: #ffffff;
   --ink: #141414;
   --ink-muted: #6f6b66;
   --line: #e6e1d8;
   --accent: #1f6b4a;
+}
+
+html[data-theme="dark"] {
+  --canvas: #0f0f10;
+  --white: #1c1c1e;
+  --ink: #f4f1ec;
+  --ink-muted: #a8a49d;
+  --line: #2a2a2c;
+  --accent: #6fbf97;
 }
 
 @theme inline {
@@ -42,7 +52,7 @@ body {
 
 .field:focus {
   border-color: var(--ink);
-  box-shadow: 0 0 0 3px rgba(20, 20, 20, 0.06);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .chip {
@@ -58,7 +68,7 @@ body {
 .chip-active {
   border-color: var(--ink);
   background: var(--ink);
-  color: white;
+  color: var(--canvas);
 }
 
 .btn-primary,
@@ -83,7 +93,7 @@ body {
 
 .btn-primary {
   background: var(--ink);
-  color: white;
+  color: var(--canvas);
 }
 
 .btn-secondary {
@@ -92,11 +102,12 @@ body {
   padding: 0 1rem;
   background: var(--white);
   border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .btn-danger {
   background: transparent;
-  color: #b42318;
+  color: #e85d4c;
 }
 
 .select {
@@ -106,4 +117,18 @@ body {
   padding: 0.5rem 0.85rem;
   font-size: 13px;
   color: var(--ink);
+}
+
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink);
 }

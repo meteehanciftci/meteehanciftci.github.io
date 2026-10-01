@@ -9,34 +9,28 @@ import {
 } from "react";
 import { inDateFilter } from "./format";
 import { createId } from "./ids";
+import { ledgerExpenses } from "./export";
 import { createSeedState } from "./seed";
 import { loadState, saveState } from "./storage";
-import type {
-  AppState,
-  Category,
-  Expense,
-  ExpenseFilters,
-  PaymentMethod,
-} from "./types";
+import { LEDGER_KIND, type AppState, type Category, type Expense, type ExpenseDraft, type ExpenseFilters, type MethodType, type PaymentMethod, type Settings } from "./types";
 
 type StoreValue = {
   ready: boolean;
   state: AppState;
-  addExpense: (
-    input: Omit<Expense, "id" | "createdAt"> & { createdAt?: number },
-  ) => Expense;
-  updateExpense: (id: string, patch: Partial<Omit<Expense, "id">>) => void;
+  ledger: Expense[];
+  addExpense: (input: ExpenseDraft) => Expense;
+  updateExpense: (id: string, patch: Partial<ExpenseDraft>) => void;
   deleteExpense: (id: string) => void;
   addCategory: (name: string) => Category | null;
   updateCategory: (id: string, name: string) => void;
   deleteCategory: (id: string) => void;
-  addMethod: (name: string) => PaymentMethod | null;
-  updateMethod: (id: string, name: string) => void;
+  moveCategory: (id: string, direction: -1 | 1) => void;
+  addMethod: (input: { name: string; code: string; type: MethodType }) => PaymentMethod | null;
+  updateMethod: (id: string, patch: Partial<Pick<PaymentMethod, "name" | "code" | "type">>) => void;
   deleteMethod: (id: string) => void;
-  suggestionForPlace: (place: string) => {
-    categoryId: string;
-    methodId: string;
-  } | null;
+  updateSettings: (patch: Partial<Settings>) => void;
+  importBackup: (state: AppState) => void;
+  suggestionForPlace: (place: string) => { categoryId: string; methodId: string } | null;
   places: string[];
 };
 
@@ -60,10 +54,7 @@ function getSnapshot() {
 }
 
 const SERVER_SNAPSHOT = createSeedState();
-
-function getServerSnapshot(): AppState {
-  return SERVER_SNAPSHOT;
-}
+const getServerSnapshot = () => SERVER_SNAPSHOT;
 
 function commit(next: AppState) {
   memory = next;
@@ -81,29 +72,32 @@ function subscribeIsClient(onChange: () => void) {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const hydrated = useSyncExternalStore(
-    subscribeIsClient,
-    () => true,
-    () => false,
-  );
+  const hydrated = useSyncExternalStore(subscribeIsClient, () => true, () => false);
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const value = useMemo<StoreValue>(() => {
     const addExpense: StoreValue["addExpense"] = (input) => {
       const expense: Expense = {
         id: createId(),
+        kind: LEDGER_KIND,
         place: normalizeName(input.place),
         amount: input.amount,
         categoryId: input.categoryId,
         methodId: input.methodId,
-        createdAt: input.createdAt ?? Date.now(),
+        occurredAt: input.occurredAt,
+        createdAt: Date.now(),
+        note: input.note.trim(),
+        installmentCount:
+          input.installmentCount && input.installmentCount > 1
+            ? input.installmentCount
+            : undefined,
       };
       commit({
         ...state,
         expenses: [expense, ...state.expenses],
         methods: state.methods.map((method) =>
           method.id === expense.methodId
-            ? { ...method, lastUsedAt: expense.createdAt }
+            ? { ...method, lastUsedAt: expense.occurredAt }
             : method,
         ),
       });
@@ -112,17 +106,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     const updateExpense: StoreValue["updateExpense"] = (id, patch) => {
       const existing = state.expenses.find((item) => item.id === id);
-      if (!existing) return;
+      if (!existing || existing.kind !== LEDGER_KIND) return;
       const nextExpense: Expense = {
         ...existing,
         ...patch,
+        kind: LEDGER_KIND,
         place: patch.place ? normalizeName(patch.place) : existing.place,
+        note: patch.note != null ? patch.note.trim() : existing.note,
+        installmentCount:
+          patch.installmentCount && patch.installmentCount > 1
+            ? patch.installmentCount
+            : patch.installmentCount === 1
+              ? undefined
+              : existing.installmentCount,
       };
       commit({
         ...state,
-        expenses: state.expenses.map((item) =>
-          item.id === id ? nextExpense : item,
-        ),
+        expenses: state.expenses.map((item) => (item.id === id ? nextExpense : item)),
         methods: state.methods.map((method) =>
           method.id === nextExpense.methodId
             ? { ...method, lastUsedAt: Date.now() }
@@ -144,13 +144,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (
         state.categories.some(
           (category) =>
-            category.name.toLocaleLowerCase("tr-TR") ===
-            clean.toLocaleLowerCase("tr-TR"),
+            category.name.toLocaleLowerCase("tr-TR") === clean.toLocaleLowerCase("tr-TR"),
         )
       ) {
         return null;
       }
-      const category = { id: createId(), name: clean };
+      const order = state.categories.reduce((max, category) => Math.max(max, category.order), -1) + 1;
+      const category = { id: createId(), name: clean, order };
       commit({ ...state, categories: [...state.categories, category] });
       return category;
     };
@@ -175,37 +175,66 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...state,
         categories: state.categories.filter((category) => category.id !== id),
         expenses: state.expenses.map((expense) =>
-          expense.categoryId === id
-            ? { ...expense, categoryId: fallback }
-            : expense,
+          expense.categoryId === id ? { ...expense, categoryId: fallback } : expense,
         ),
       });
     };
 
-    const addMethod: StoreValue["addMethod"] = (name) => {
-      const clean = normalizeName(name);
-      if (!clean) return null;
+    const moveCategory: StoreValue["moveCategory"] = (id, direction) => {
+      const sorted = [...state.categories].sort((a, b) => a.order - b.order);
+      const index = sorted.findIndex((category) => category.id === id);
+      const swap = index + direction;
+      if (index < 0 || swap < 0 || swap >= sorted.length) return;
+      const a = sorted[index];
+      const b = sorted[swap];
+      commit({
+        ...state,
+        categories: state.categories.map((category) => {
+          if (category.id === a.id) return { ...category, order: b.order };
+          if (category.id === b.id) return { ...category, order: a.order };
+          return category;
+        }),
+      });
+    };
+
+    const addMethod: StoreValue["addMethod"] = (input) => {
+      const name = normalizeName(input.name);
+      const code = normalizeName(input.code).toLocaleUpperCase("tr-TR").slice(0, 6);
+      if (!name || !code) return null;
       if (
         state.methods.some(
           (method) =>
-            method.name.toLocaleLowerCase("tr-TR") ===
-            clean.toLocaleLowerCase("tr-TR"),
+            method.name.toLocaleLowerCase("tr-TR") === name.toLocaleLowerCase("tr-TR") ||
+            method.code === code,
         )
       ) {
         return null;
       }
-      const method = { id: createId(), name: clean, lastUsedAt: Date.now() };
+      const method: PaymentMethod = {
+        id: createId(),
+        name,
+        code,
+        type: input.type,
+        lastUsedAt: Date.now(),
+      };
       commit({ ...state, methods: [...state.methods, method] });
       return method;
     };
 
-    const updateMethod: StoreValue["updateMethod"] = (id, name) => {
-      const clean = normalizeName(name);
-      if (!clean) return;
+    const updateMethod: StoreValue["updateMethod"] = (id, patch) => {
       commit({
         ...state,
         methods: state.methods.map((method) =>
-          method.id === id ? { ...method, name: clean } : method,
+          method.id === id
+            ? {
+                ...method,
+                ...patch,
+                name: patch.name ? normalizeName(patch.name) : method.name,
+                code: patch.code
+                  ? normalizeName(patch.code).toLocaleUpperCase("tr-TR").slice(0, 6)
+                  : method.code,
+              }
+            : method,
         ),
       });
     };
@@ -223,32 +252,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
     };
 
+    const updateSettings: StoreValue["updateSettings"] = (patch) => {
+      commit({ ...state, settings: { ...state.settings, ...patch } });
+    };
+
+    const importBackup: StoreValue["importBackup"] = (next) => {
+      commit(next);
+    };
+
     const suggestionForPlace: StoreValue["suggestionForPlace"] = (place) => {
       const needle = normalizeName(place).toLocaleLowerCase("tr-TR");
       if (!needle) return null;
-      const match = state.expenses.find(
+      const match = ledgerExpenses(state.expenses).find(
         (expense) => expense.place.toLocaleLowerCase("tr-TR") === needle,
       );
       if (!match) return null;
       return { categoryId: match.categoryId, methodId: match.methodId };
     };
 
-    const places = Array.from(
-      new Set(state.expenses.map((expense) => expense.place)),
-    );
+    const ledger = ledgerExpenses(state.expenses);
+    const places = Array.from(new Set(ledger.map((expense) => expense.place)));
 
     return {
       ready: true,
       state,
+      ledger,
       addExpense,
       updateExpense,
       deleteExpense,
       addCategory,
       updateCategory,
       deleteCategory,
+      moveCategory,
       addMethod,
       updateMethod,
       deleteMethod,
+      updateSettings,
+      importBackup,
       suggestionForPlace,
       places,
     };
@@ -276,25 +316,53 @@ export function useSortedMethods() {
   return [...state.methods].sort((a, b) => b.lastUsedAt - a.lastUsedAt);
 }
 
-export function filterExpenses(expenses: Expense[], filters: ExpenseFilters) {
+export function useSortedCategories() {
+  const { state } = useStore();
+  return [...state.categories].sort((a, b) => a.order - b.order);
+}
+
+export function filterExpenses(
+  expenses: Expense[],
+  filters: ExpenseFilters,
+  lookup: { categories: Category[]; methods: PaymentMethod[] },
+) {
   const query = filters.query.trim().toLocaleLowerCase("tr-TR");
-  return expenses.filter((expense) => {
-    if (query && !expense.place.toLocaleLowerCase("tr-TR").includes(query)) {
+  const min = filters.minAmount ? Number(filters.minAmount.replace(",", ".")) : null;
+  const max = filters.maxAmount ? Number(filters.maxAmount.replace(",", ".")) : null;
+  return ledgerExpenses(expenses).filter((expense) => {
+    if (query) {
+      const category = lookup.categories.find((item) => item.id === expense.categoryId);
+      const method = lookup.methods.find((item) => item.id === expense.methodId);
+      const hay = [
+        expense.place,
+        expense.note,
+        category?.name ?? "",
+        method?.name ?? "",
+        method?.code ?? "",
+      ]
+        .join(" ")
+        .toLocaleLowerCase("tr-TR");
+      if (!hay.includes(query)) return false;
+    }
+    if (!inDateFilter(expense.occurredAt, filters.date, Date.now(), filters.customFrom, filters.customTo)) {
       return false;
     }
-    if (!inDateFilter(expense.createdAt, filters.date)) return false;
-    if (filters.categoryId && expense.categoryId !== filters.categoryId) {
-      return false;
-    }
-    if (filters.methodId && expense.methodId !== filters.methodId) {
-      return false;
-    }
+    if (filters.categoryId && expense.categoryId !== filters.categoryId) return false;
+    if (filters.methodId && expense.methodId !== filters.methodId) return false;
+    if (min != null && Number.isFinite(min) && expense.amount < min) return false;
+    if (max != null && Number.isFinite(max) && expense.amount > max) return false;
     return true;
   });
 }
 
 export function monthTotal(expenses: Expense[], now = Date.now()) {
-  return expenses
-    .filter((expense) => inDateFilter(expense.createdAt, "this-month", now))
+  return ledgerExpenses(expenses)
+    .filter((expense) => inDateFilter(expense.occurredAt, "this-month", now))
+    .reduce((sum, expense) => sum + expense.amount, 0);
+}
+
+export function todayTotal(expenses: Expense[], now = Date.now()) {
+  return ledgerExpenses(expenses)
+    .filter((expense) => inDateFilter(expense.occurredAt, "today", now))
     .reduce((sum, expense) => sum + expense.amount, 0);
 }

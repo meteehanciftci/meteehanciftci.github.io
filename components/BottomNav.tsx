@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useExpenseSheet } from "./ExpenseSheetContext";
 
 const items = [
-  { href: "/", label: "Harcama Defteri", icon: BookIcon },
+  { href: "/", label: "Harcama", icon: BookIcon },
   { href: "/ozet", label: "Özet", icon: SummaryIcon },
   { href: "/ayarlar", label: "Ayarlar", icon: SettingsIcon },
 ] as const;
@@ -23,33 +24,42 @@ function isActive(pathname: string, href: string) {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { openAdd } = useExpenseSheet();
 
   return (
     <nav
       aria-label="Ana menü"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-white/90 backdrop-blur-md"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-[color:var(--white)]/90 backdrop-blur-md"
     >
-      <ul className="mx-auto grid max-w-lg grid-cols-3 px-2 pb-[env(safe-area-inset-bottom)]">
-        {items.map((item) => {
-          const active = isActive(pathname, item.href);
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`flex min-h-[3.75rem] flex-col items-center justify-center gap-1 px-1 py-1.5 text-[11px] tracking-tight ${
-                  active ? "font-semibold text-ink" : "font-medium text-ink-muted"
-                }`}
-                aria-current={active ? "page" : undefined}
-              >
-                <item.icon active={active} />
-                <span className="max-w-[7.5rem] text-center leading-tight">
+      <div className="relative mx-auto max-w-lg">
+        <button
+          type="button"
+          onClick={openAdd}
+          className="absolute -top-7 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-3xl font-light text-white shadow-lg"
+          aria-label="Harcama ekle"
+        >
+          +
+        </button>
+        <ul className="grid grid-cols-3 px-2 pb-[env(safe-area-inset-bottom)]">
+          {items.map((item) => {
+            const active = isActive(pathname, item.href);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex min-h-[3.75rem] flex-col items-center justify-center gap-1 px-1 py-1.5 text-[11px] tracking-tight ${
+                    active ? "font-semibold text-ink" : "font-medium text-ink-muted"
+                  }`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  <item.icon active={active} />
                   {item.label}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </nav>
   );
 }
@@ -87,13 +97,7 @@ function SummaryIcon({ active }: { active: boolean }) {
 function SettingsIcon({ active }: { active: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle
-        cx="12"
-        cy="12"
-        r="3"
-        stroke="currentColor"
-        strokeWidth={active ? 1.8 : 1.5}
-      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={active ? 1.8 : 1.5} />
       <path
         d="M12 4.5v1.6M12 17.9v1.6M19.5 12h-1.6M6.1 12H4.5M17.3 6.7l-1.1 1.1M7.8 16.2l-1.1 1.1M17.3 17.3l-1.1-1.1M7.8 7.8 6.7 6.7"
         stroke="currentColor"

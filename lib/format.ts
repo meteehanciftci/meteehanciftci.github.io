@@ -1,24 +1,29 @@
-const TZ = "Europe/Istanbul";
+import type { CurrencyCode, DateFilter } from "./types";
 
-export function formatAmountTRY(amount: number): string {
-  return `${new Intl.NumberFormat("tr-TR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)} TL`;
+export const TZ = "Europe/Istanbul";
+
+const symbols: Record<CurrencyCode, string> = {
+  TRY: "₺",
+  EUR: "€",
+  USD: "$",
+};
+
+export function formatMoney(amount: number, currency: CurrencyCode = "TRY"): string {
+  const whole = Number.isInteger(Math.round(amount * 100) / 100) && amount % 1 === 0;
+  const num = new Intl.NumberFormat("tr-TR", {
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  }).format(amount);
+  return `${num} ${symbols[currency]}`;
 }
 
-export function formatLira(amount: number): string {
-  return `₺${new Intl.NumberFormat("tr-TR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.round(amount))}`;
-}
+export const formatLira = (amount: number) => formatMoney(amount, "TRY");
 
-export function formatLiraExact(amount: number): string {
-  return `₺${new Intl.NumberFormat("tr-TR", {
+export function formatAmountInput(amount: number): string {
+  return new Intl.NumberFormat("tr-TR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amount)}`;
+  }).format(amount);
 }
 
 export function parseAmountInput(raw: string): number | null {
@@ -56,17 +61,43 @@ export function istanbulParts(ts: number = Date.now()) {
     year: "numeric",
     month: "numeric",
     day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
   }).formatToParts(new Date(ts));
   const get = (type: string) =>
     Number(parts.find((part) => part.type === type)?.value);
-  return { year: get("year"), month: get("month"), day: get("day") };
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+  };
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
 }
 
 export function startOfIstanbulDay(ts: number): number {
   const { year, month, day } = istanbulParts(ts);
-  return Date.parse(
-    `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00+03:00`,
-  );
+  return Date.parse(`${year}-${pad(month)}-${pad(day)}T00:00:00+03:00`);
+}
+
+export function toDatetimeLocal(ts: number): string {
+  const p = istanbulParts(ts);
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+}
+
+export function fromDatetimeLocal(value: string): number {
+  if (!value) return Date.now();
+  return Date.parse(`${value}:00+03:00`);
+}
+
+export function formatClock(ts: number): string {
+  const { hour, minute } = istanbulParts(ts);
+  return `${pad(hour)}:${pad(minute)}`;
 }
 
 export function formatExpenseDate(ts: number, now = Date.now()): string {
@@ -77,9 +108,31 @@ export function formatExpenseDate(ts: number, now = Date.now()): string {
   if (diff === 1) return "Dün";
   return new Intl.DateTimeFormat("tr-TR", {
     timeZone: TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(ts));
+}
+
+export function formatDayHeading(ts: number, now = Date.now()): string {
+  const day = startOfIstanbulDay(ts);
+  const today = startOfIstanbulDay(now);
+  const diff = Math.round((today - day) / 86_400_000);
+  if (diff === 0) return "BUGÜN";
+  if (diff === 1) return "DÜN";
+  return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: TZ,
     day: "numeric",
     month: "long",
-  }).format(new Date(ts));
+    year: "numeric",
+  })
+    .format(new Date(ts))
+    .toLocaleUpperCase("tr-TR");
+}
+
+export function formatRowWhen(ts: number): string {
+  const label = formatExpenseDate(ts);
+  return `${label} ${formatClock(ts)}`;
 }
 
 export function formatMonthTitle(year: number, month: number): string {
@@ -92,19 +145,42 @@ export function formatMonthTitle(year: number, month: number): string {
   return raw.charAt(0).toLocaleUpperCase("tr-TR") + raw.slice(1);
 }
 
+export function startOfIsoWeek(ts: number): number {
+  const start = startOfIstanbulDay(ts);
+  const { year, month, day } = istanbulParts(start);
+  const weekday = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getUTCDay();
+  const mondayOffset = (weekday + 6) % 7;
+  return start - mondayOffset * 86_400_000;
+}
+
 export function inDateFilter(
   ts: number,
-  filter: "all" | "this-month" | "last-month" | "this-year",
+  filter: DateFilter,
   now = Date.now(),
+  customFrom?: string,
+  customTo?: string,
 ): boolean {
   if (filter === "all") return true;
   const current = istanbulParts(now);
   const target = istanbulParts(ts);
-  if (filter === "this-year") return target.year === current.year;
+  if (filter === "today") {
+    return startOfIstanbulDay(ts) === startOfIstanbulDay(now);
+  }
+  if (filter === "this-week") {
+    return ts >= startOfIsoWeek(now) && ts <= now + 86_400_000;
+  }
   if (filter === "this-month") {
     return target.year === current.year && target.month === current.month;
   }
-  const lastMonth = current.month === 1 ? 12 : current.month - 1;
-  const lastYear = current.month === 1 ? current.year - 1 : current.year;
-  return target.year === lastYear && target.month === lastMonth;
+  if (filter === "last-month") {
+    const lastMonth = current.month === 1 ? 12 : current.month - 1;
+    const lastYear = current.month === 1 ? current.year - 1 : current.year;
+    return target.year === lastYear && target.month === lastMonth;
+  }
+  if (filter === "custom") {
+    const from = customFrom ? Date.parse(`${customFrom}T00:00:00+03:00`) : -Infinity;
+    const to = customTo ? Date.parse(`${customTo}T23:59:59+03:00`) : Infinity;
+    return ts >= from && ts <= to;
+  }
+  return true;
 }
