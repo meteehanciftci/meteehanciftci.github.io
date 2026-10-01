@@ -1,7 +1,6 @@
 export const LEDGER_KIND = "manual" as const;
 export type LedgerKind = typeof LEDGER_KIND;
 
-/** Records that must never appear in Harcama Defteri. */
 export type ExcludedKind =
   | "cc_payment"
   | "loan_payment"
@@ -16,9 +15,24 @@ export type ExcludedKind =
   | "system";
 
 export type MethodType = "credit" | "debit" | "cash";
-
+export type SpendClass = "need" | "want" | "luxury";
 export type ThemePreference = "light" | "dark" | "system";
 export type CurrencyCode = "TRY" | "EUR" | "USD";
+export type Period =
+  | "7d"
+  | "30d"
+  | "this-month"
+  | "last-month"
+  | "3m"
+  | "6m"
+  | "1y"
+  | "all";
+
+export const CLASS_LABEL: Record<SpendClass, string> = {
+  need: "İhtiyaç",
+  want: "İstek",
+  luxury: "Lüks",
+};
 
 export type Category = {
   id: string;
@@ -41,23 +55,39 @@ export type Expense = {
   amount: number;
   categoryId: string;
   methodId: string;
+  spendClass: SpendClass;
+  aiSuggestedClass?: SpendClass;
   occurredAt: number;
   createdAt: number;
   note: string;
   installmentCount?: number;
 };
 
+export type ClassCorrection = {
+  place: string;
+  categoryId: string;
+  chosen: SpendClass;
+  suggested?: SpendClass;
+  at: number;
+};
+
 export type Settings = {
   currency: CurrencyCode;
   theme: ThemePreference;
+  aiEnabled: boolean;
+  goals: {
+    wantMaxPct: number | null;
+    luxuryMaxPct: number | null;
+  };
 };
 
 export type AppState = {
-  version: 2;
+  version: 3;
   categories: Category[];
   methods: PaymentMethod[];
   expenses: Expense[];
   settings: Settings;
+  classCorrections: ClassCorrection[];
 };
 
 export type DateFilter =
@@ -75,6 +105,8 @@ export type ExpenseFilters = {
   customTo?: string;
   categoryId: string;
   methodId: string;
+  place: string;
+  spendClass: SpendClass | "";
   minAmount: string;
   maxAmount: string;
 };
@@ -84,6 +116,8 @@ export type ExpenseDraft = {
   amount: number;
   categoryId: string;
   methodId: string;
+  spendClass: SpendClass;
+  aiSuggestedClass?: SpendClass;
   occurredAt: number;
   note: string;
   installmentCount?: number;

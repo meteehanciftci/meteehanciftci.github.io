@@ -30,7 +30,7 @@ type StoreValue = {
   deleteMethod: (id: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   importBackup: (state: AppState) => void;
-  suggestionForPlace: (place: string) => { categoryId: string; methodId: string } | null;
+  suggestionForPlace: (place: string) => { categoryId: string; methodId: string; spendClass: Expense["spendClass"] } | null;
   places: string[];
 };
 
@@ -66,6 +66,22 @@ function normalizeName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }
 
+function rememberCorrection(state: AppState, expense: Expense): AppState["classCorrections"] {
+  if (!expense.aiSuggestedClass || expense.aiSuggestedClass === expense.spendClass) {
+    return state.classCorrections;
+  }
+  return [
+    {
+      place: expense.place,
+      categoryId: expense.categoryId,
+      chosen: expense.spendClass,
+      suggested: expense.aiSuggestedClass,
+      at: Date.now(),
+    },
+    ...state.classCorrections,
+  ].slice(0, 400);
+}
+
 function subscribeIsClient(onChange: () => void) {
   queueMicrotask(onChange);
   return () => {};
@@ -84,6 +100,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         amount: input.amount,
         categoryId: input.categoryId,
         methodId: input.methodId,
+        spendClass: input.spendClass,
+        aiSuggestedClass: input.aiSuggestedClass,
         occurredAt: input.occurredAt,
         createdAt: Date.now(),
         note: input.note.trim(),
@@ -95,6 +113,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       commit({
         ...state,
         expenses: [expense, ...state.expenses],
+        classCorrections: rememberCorrection(state, expense),
         methods: state.methods.map((method) =>
           method.id === expense.methodId
             ? { ...method, lastUsedAt: expense.occurredAt }
@@ -123,6 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       commit({
         ...state,
         expenses: state.expenses.map((item) => (item.id === id ? nextExpense : item)),
+        classCorrections: rememberCorrection(state, nextExpense),
         methods: state.methods.map((method) =>
           method.id === nextExpense.methodId
             ? { ...method, lastUsedAt: Date.now() }
@@ -267,7 +287,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         (expense) => expense.place.toLocaleLowerCase("tr-TR") === needle,
       );
       if (!match) return null;
-      return { categoryId: match.categoryId, methodId: match.methodId };
+      return { categoryId: match.categoryId, methodId: match.methodId, spendClass: match.spendClass };
     };
 
     const ledger = ledgerExpenses(state.expenses);
@@ -349,6 +369,10 @@ export function filterExpenses(
     }
     if (filters.categoryId && expense.categoryId !== filters.categoryId) return false;
     if (filters.methodId && expense.methodId !== filters.methodId) return false;
+    if (filters.spendClass && expense.spendClass !== filters.spendClass) return false;
+    if (filters.place && !expense.place.toLocaleLowerCase("tr-TR").includes(filters.place.toLocaleLowerCase("tr-TR"))) {
+      return false;
+    }
     if (min != null && Number.isFinite(min) && expense.amount < min) return false;
     if (max != null && Number.isFinite(max) && expense.amount > max) return false;
     return true;

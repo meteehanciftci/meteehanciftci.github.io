@@ -1,5 +1,5 @@
 import { formatMoney, istanbulParts } from "./format";
-import { LEDGER_KIND, type AppState, type Expense } from "./types";
+import { CLASS_LABEL, LEDGER_KIND, type AppState, type Expense } from "./types";
 
 export function ledgerExpenses(expenses: Expense[]): Expense[] {
   return expenses.filter((expense) => expense.kind === LEDGER_KIND);
@@ -7,16 +7,13 @@ export function ledgerExpenses(expenses: Expense[]): Expense[] {
 
 export function exportCsv(state: AppState): string {
   const header = [
-    "id",
     "tarih",
     "saat",
     "yer",
     "tutar",
-    "para_birimi",
-    "kategori",
     "odeme",
-    "kod",
-    "taksit",
+    "sinif",
+    "kategori",
     "not",
   ];
   const rows = ledgerExpenses(state.expenses).map((expense) => {
@@ -25,16 +22,13 @@ export function exportCsv(state: AppState): string {
     const method = state.methods.find((item) => item.id === expense.methodId);
     const pad = (n: number) => String(n).padStart(2, "0");
     return [
-      expense.id,
       `${pad(p.day)}.${pad(p.month)}.${p.year}`,
       `${pad(p.hour)}:${pad(p.minute)}`,
       expense.place,
       String(expense.amount).replace(".", ","),
-      state.settings.currency,
-      category,
       method?.name ?? "",
-      method?.code ?? "",
-      expense.installmentCount ? String(expense.installmentCount) : "",
+      CLASS_LABEL[expense.spendClass],
+      category,
       expense.note,
     ]
       .map((cell) => `"${cell.replaceAll('"', '""')}"`)

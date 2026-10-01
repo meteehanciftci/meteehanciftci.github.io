@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sheet } from "./Sheet";
 import { useSortedCategories, useSortedMethods } from "@/lib/store";
-import type { DateFilter, ExpenseFilters } from "@/lib/types";
+import { CLASS_LABEL, type DateFilter, type ExpenseFilters, type SpendClass } from "@/lib/types";
 
 const DATE_OPTIONS: { id: DateFilter; label: string }[] = [
   { id: "all", label: "Tümü" },
@@ -27,6 +27,8 @@ export function FilterSheet({ value, onChange }: Props) {
     value.date !== "all" ||
     value.categoryId ||
     value.methodId ||
+    value.place ||
+    value.spendClass ||
     value.minAmount ||
     value.maxAmount;
 
@@ -70,6 +72,34 @@ export function FilterSheet({ value, onChange }: Props) {
               </div>
             ) : null}
           </fieldset>
+
+          <fieldset>
+            <legend className="mb-2 text-[13px] font-medium text-ink-muted">Harcama sınıfı</legend>
+            <div className="flex flex-wrap gap-2">
+              {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={value.spendClass === id ? "chip chip-active" : "chip"}
+                  onClick={() =>
+                    onChange({ ...value, spendClass: value.spendClass === id ? "" : id })
+                  }
+                >
+                  {CLASS_LABEL[id]}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+
+          <label>
+            <span className="mb-2 block text-[13px] font-medium text-ink-muted">Harcama yeri</span>
+            <input
+              className="field"
+              value={value.place}
+              onChange={(event) => onChange({ ...value, place: event.target.value })}
+              placeholder="Migros"
+            />
+          </label>
 
           <label>
             <span className="mb-2 block text-[13px] font-medium text-ink-muted">Kategori</span>
@@ -135,6 +165,8 @@ export function FilterSheet({ value, onChange }: Props) {
                 date: "all",
                 categoryId: "",
                 methodId: "",
+                place: "",
+                spendClass: "",
                 minAmount: "",
                 maxAmount: "",
                 customFrom: "",

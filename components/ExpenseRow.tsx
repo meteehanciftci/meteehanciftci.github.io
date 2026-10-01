@@ -3,6 +3,7 @@
 import { formatMoney, formatRowWhen } from "@/lib/format";
 import { installmentLabel } from "@/lib/export";
 import type { Category, Expense, PaymentMethod } from "@/lib/types";
+import { ClassMark } from "./ClassShare";
 import { useExpenseSheet } from "./ExpenseSheetContext";
 import { useStore } from "@/lib/store";
 
@@ -26,10 +27,10 @@ export function ExpenseRow({ expense, category, method }: Props) {
       <div className="min-w-0">
         <p className="truncate text-[16px] font-semibold tracking-tight">{expense.place}</p>
         <p className="mt-0.5 truncate text-[13px] text-ink-muted">
-          {category?.name ?? "Kategori"}
+          {method?.code ?? "—"} · {category?.name ?? "Kategori"}
         </p>
         <p className="mt-0.5 truncate text-[13px] text-ink-muted">
-          {method?.code ?? "—"} · {formatRowWhen(expense.occurredAt)}
+          <ClassMark value={expense.spendClass} /> · {formatRowWhen(expense.occurredAt)}
         </p>
       </div>
       <div className="shrink-0 text-right">

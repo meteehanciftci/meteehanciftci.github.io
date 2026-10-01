@@ -6,7 +6,7 @@ import { useExpenseSheet } from "./ExpenseSheetContext";
 
 const items = [
   { href: "/", label: "Harcama", icon: BookIcon },
-  { href: "/ozet", label: "Özet", icon: SummaryIcon },
+  { href: "/ozet", label: "Analiz", icon: SummaryIcon },
   { href: "/ayarlar", label: "Ayarlar", icon: SettingsIcon },
 ] as const;
 

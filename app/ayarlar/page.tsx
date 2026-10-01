@@ -207,6 +207,67 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
+        <h2 className="mb-3 text-[15px] font-semibold">Harcama AI</h2>
+        <p className="mb-3 text-sm leading-6 text-ink-muted">
+          Öneriler ve içgörüler yalnızca bu cihazdaki kayıtlardan üretilir. Harcama verisi dışarı gönderilmez.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={state.settings.aiEnabled ? "chip chip-active" : "chip"}
+            onClick={() => updateSettings({ aiEnabled: true })}
+          >
+            Açık
+          </button>
+          <button
+            type="button"
+            className={!state.settings.aiEnabled ? "chip chip-active" : "chip"}
+            onClick={() => updateSettings({ aiEnabled: false })}
+          >
+            Kapalı
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <label>
+            <span className="mb-2 block text-[13px] text-ink-muted">İstek tavanı %</span>
+            <input
+              className="field tabular-nums"
+              inputMode="numeric"
+              defaultValue={state.settings.goals.wantMaxPct ?? ""}
+              placeholder="30"
+              onBlur={(event) => {
+                const n = Number(event.target.value.replace(",", "."));
+                updateSettings({
+                  goals: {
+                    ...state.settings.goals,
+                    wantMaxPct: Number.isFinite(n) && n > 0 ? n : null,
+                  },
+                });
+              }}
+            />
+          </label>
+          <label>
+            <span className="mb-2 block text-[13px] text-ink-muted">Lüks tavanı %</span>
+            <input
+              className="field tabular-nums"
+              inputMode="numeric"
+              defaultValue={state.settings.goals.luxuryMaxPct ?? ""}
+              placeholder="10"
+              onBlur={(event) => {
+                const n = Number(event.target.value.replace(",", "."));
+                updateSettings({
+                  goals: {
+                    ...state.settings.goals,
+                    luxuryMaxPct: Number.isFinite(n) && n > 0 ? n : null,
+                  },
+                });
+              }}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="mt-12">
         <h2 className="mb-3 text-[15px] font-semibold">Verileri dışa aktar</h2>
         <div className="flex flex-col gap-2">
           <button
@@ -254,8 +315,8 @@ export default function SettingsPage() {
       <section className="mt-12">
         <h2 className="mb-2 text-[15px] font-semibold">Uygulama bilgileri</h2>
         <p className="text-sm leading-6 text-ink-muted">
-          Harcama Defteri 1.1 — yalnızca elle eklenen gerçek harcamalar. Çevrimdışı çalışır.
-          Kredi kartı ödemesi, transfer veya ekstre bu listede yer almaz.
+          Harcama Defteri 1.2 — AI destekli kişisel harcama defteri. Yalnızca elle eklenen tüketim
+          kayıtları. Analiz cihaz üzerinde çalışır.
         </p>
       </section>
     </main>

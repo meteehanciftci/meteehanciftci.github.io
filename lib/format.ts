@@ -1,4 +1,4 @@
-import type { CurrencyCode, DateFilter } from "./types";
+import type { CurrencyCode, DateFilter, Period } from "./types";
 
 export const TZ = "Europe/Istanbul";
 
@@ -183,4 +183,51 @@ export function inDateFilter(
     return ts >= from && ts <= to;
   }
   return true;
+}
+
+export function istanbulWeekday(ts: number): number {
+  const { year, month, day } = istanbulParts(ts);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).getUTCDay();
+}
+
+export function shiftMonth(year: number, month: number, delta: number) {
+  const date = new Date(year, month - 1 + delta, 1);
+  return { year: date.getFullYear(), month: date.getMonth() + 1 };
+}
+
+export function inPeriod(ts: number, period: Period, now = Date.now()): boolean {
+  const current = istanbulParts(now);
+  const target = istanbulParts(ts);
+  if (period === "all") return true;
+  if (period === "this-month") {
+    return target.year === current.year && target.month === current.month;
+  }
+  if (period === "last-month") {
+    const last = shiftMonth(current.year, current.month, -1);
+    return target.year === last.year && target.month === last.month;
+  }
+  const dayMs = 86_400_000;
+  const start = startOfIstanbulDay(now);
+  if (period === "7d") return ts >= start - 6 * dayMs;
+  if (period === "30d") return ts >= start - 29 * dayMs;
+  if (period === "3m") return ts >= start - 90 * dayMs;
+  if (period === "6m") return ts >= start - 182 * dayMs;
+  if (period === "1y") return ts >= start - 365 * dayMs;
+  return true;
+}
+
+export const PERIOD_LABEL: Record<Period, string> = {
+  "7d": "7 Gün",
+  "30d": "30 Gün",
+  "this-month": "Bu Ay",
+  "last-month": "Geçen Ay",
+  "3m": "3 Ay",
+  "6m": "6 Ay",
+  "1y": "1 Yıl",
+  all: "Tümü",
+};
+
+export function monthKey(ts: number) {
+  const { year, month } = istanbulParts(ts);
+  return `${year}-${String(month).padStart(2, "0")}`;
 }

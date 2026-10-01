@@ -1,6 +1,6 @@
 # Harcama Defteri
 
-Günlük harcamaları dört alanla kaydeden, mobil öncelikli bir gider defteri. Veriler tarayıcıda (localStorage) tutulur; sunucu gerekmez.
+AI destekli kişisel harcama defteri. Kayıtlar İhtiyaç / İstek / Lüks olarak sınıflanır; analiz cihaz üzerinde, çevrimdışı çalışır. Muhasebe, banka veya borç uygulaması değildir.
 
 ## Çalıştırma
 
@@ -20,14 +20,14 @@ npx serve out
 
 ## Kullanım
 
-1. **+ Harcama Ekle** — yer, miktar, ödeme yöntemi, kategori.
-2. Ana ekranda **Bu Ay** toplamı ve son harcamalar.
-3. **Tümü** — arama ve tarih / kategori / ödeme filtresi.
+1. **+ Harcama Ekle** — yer, tutar, ödeme, sınıf, kategori.
+2. Ana ekran — dönem toplamı, sınıf dağılımı, trend, içgörü, son kayıtlar.
+3. **Tümü** — arama (ör. “geçen ayki lüks”), sınıf / kategori / tutar filtresi.
 4. Bir kayda dokunun — düzenle veya sil.
-5. **Özet** — seçilen ayın toplamı ve kırılımlar.
-6. **Ayarlar** — kategori ve ödeme yöntemlerini yönetin.
+5. **Analiz** — sınıf, kategori, işletme, zaman, ödeme ve Harcama AI.
+6. **Ayarlar** — AI’yi kapatma, isteğe bağlı hedefler, CSV / JSON.
 
-İlk açılışta örnek harcamalar yüklenir. Kayıtlar yalnızca elle eklenen gerçek harcamalardır (transfer, kart ödemesi, ekstre içe aktarma yok).
+İlk açılışta örnek harcamalar yüklenir. Kayıtlar yalnızca elle eklenen tüketimlerdir.
 
 ## Android APK (tablet)
 

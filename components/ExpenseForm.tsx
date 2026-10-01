@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatSuggestion, suggestSpendClass } from "@/lib/classifier";
 import { fromDatetimeLocal, parseAmountInput, toDatetimeLocal } from "@/lib/format";
 import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
-import type { Expense, ExpenseDraft, MethodType } from "@/lib/types";
+import { CLASS_LABEL, type Expense, type ExpenseDraft, type MethodType, type SpendClass } from "@/lib/types";
 
 const METHOD_TYPES: { id: MethodType; label: string }[] = [
   { id: "credit", label: "Kredi Kartı" },
@@ -20,7 +21,7 @@ type Props = {
 };
 
 export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, onDelete }: Props) {
-  const { places, suggestionForPlace, addMethod, addCategory } = useStore();
+  const { state, places, suggestionForPlace, addMethod, addCategory } = useStore();
   const methods = useSortedMethods();
   const categories = useSortedCategories();
   const nakit = methods.find((method) => method.type === "cash") ?? methods[0];
@@ -52,6 +53,8 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
   const [newMethodType, setNewMethodType] = useState<MethodType>("credit");
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [spendClass, setSpendClass] = useState<SpendClass>(expense?.spendClass ?? "need");
+  const [classTouched, setClassTouched] = useState(Boolean(expense));
   const [error, setError] = useState("");
   const [suggested, setSuggested] = useState(false);
 
@@ -65,6 +68,13 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
       .slice(0, 6);
   }, [place, places]);
 
+  const parsedLive = parseAmountInput(amount) ?? 0;
+  const suggestion = useMemo(() => {
+    if (!state.settings.aiEnabled) return null;
+    if (!place.trim() && !categoryId && parsedLive <= 0) return null;
+    return suggestSpendClass(state, { place, amount: parsedLive, categoryId });
+  }, [state, place, categoryId, parsedLive]);
+
   function applySuggestion(value: string) {
     const hint = suggestionForPlace(value);
     if (!hint) {
@@ -73,6 +83,7 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
     }
     setCategoryId(hint.categoryId);
     setMethodId(hint.methodId);
+    if (!classTouched) setSpendClass(hint.spendClass);
     setSuggested(true);
   }
 
@@ -99,6 +110,8 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
       amount: parsed,
       categoryId,
       methodId,
+      spendClass,
+      aiSuggestedClass: suggestion?.spendClass,
       occurredAt: fromDatetimeLocal(occurredAt || toDatetimeLocal(Date.now())),
       note,
       installmentCount: count,
@@ -272,6 +285,45 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
           ) : null}
         </fieldset>
       ) : null}
+
+      <fieldset>
+        <legend className="mb-2 text-[13px] font-medium text-ink-muted">Harcama sınıfı</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
+            <button
+              key={id}
+              type="button"
+              className={spendClass === id ? `chip chip-active class-${id}` : `chip class-${id}`}
+              onClick={() => {
+                setSpendClass(id);
+                setClassTouched(true);
+              }}
+            >
+              {CLASS_LABEL[id]}
+            </button>
+          ))}
+        </div>
+        {suggestion ? (
+          <div className="mt-3 rounded-2xl border border-line bg-[color:var(--white)] px-3 py-3">
+            <p className="text-[13px] text-ink-muted">{formatSuggestion(suggestion)}</p>
+            {suggestion.warning ? (
+              <p className="mt-1 text-[13px] text-ink">{suggestion.warning}</p>
+            ) : null}
+            {suggestion.spendClass !== spendClass ? (
+              <button
+                type="button"
+                className="mt-2 text-[13px] font-medium text-accent"
+                onClick={() => {
+                  setSpendClass(suggestion.spendClass);
+                  setClassTouched(true);
+                }}
+              >
+                {CLASS_LABEL[suggestion.spendClass]} olarak kullan
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </fieldset>
 
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink-muted">
