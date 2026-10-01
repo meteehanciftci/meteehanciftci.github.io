@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
+import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
 import { useSortedCategories, useSortedMethods } from "@/lib/store";
 import { CLASS_LABEL, type DateFilter, type ExpenseFilters, type SpendClass } from "@/lib/types";
@@ -17,9 +19,10 @@ const DATE_OPTIONS: { id: DateFilter; label: string }[] = [
 type Props = {
   value: ExpenseFilters;
   onChange: (next: ExpenseFilters) => void;
+  iconOnly?: boolean;
 };
 
-export function FilterSheet({ value, onChange }: Props) {
+export function FilterSheet({ value, onChange, iconOnly = false }: Props) {
   const [open, setOpen] = useState(false);
   const categories = useSortedCategories();
   const methods = useSortedMethods();
@@ -34,8 +37,9 @@ export function FilterSheet({ value, onChange }: Props) {
 
   return (
     <>
-      <button type="button" className="chip" onClick={() => setOpen(true)}>
-        Filtre{active ? " · açık" : ""}
+      <button type="button" className={iconOnly ? "icon-btn press relative" : "chip"} onClick={() => setOpen(true)} aria-label="Filtrele">
+        {iconOnly ? <Icon icon={SlidersHorizontal} size={22} /> : `Filtre${active ? " · açık" : ""}`}
+        {iconOnly && active ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-ink" /> : null}
       </button>
       <Sheet open={open} title="Filtreler" onClose={() => setOpen(false)}>
         <div className="flex flex-col gap-5 pb-4">

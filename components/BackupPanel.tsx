@@ -6,6 +6,8 @@ import { exportCsv } from "@/lib/export";
 import { readBackupStatus, saveCsv, shareSavedBackup, writePermanentBackup, type BackupReceipt } from "@/lib/files";
 import { listSnapshots, type Snapshot } from "@/lib/storage";
 import { useStore } from "@/lib/store";
+import { DatabaseBackup, FileDown, History, RotateCcw, Sheet as SheetIcon } from "lucide-react";
+import { Icon } from "./Icon";
 import { useToast } from "./Toast";
 
 function formatWhen(at: number) {
@@ -87,18 +89,20 @@ export function BackupPanel() {
 
   return (
     <section className="mt-8">
-      <h2 className="text-[13px] text-ink-muted">Veri ve yedekleme</h2>
+      <h2 className="flex items-center gap-2 text-[13px] text-ink-muted">
+        <Icon icon={DatabaseBackup} size={18} /> Veri ve yedekleme
+      </h2>
       <button type="button" className="row-link" disabled={busy} onClick={() => void createBackup()}>
-        Yedek oluştur
-      </button>
-      <button type="button" className="row-link" disabled={!status} onClick={() => void shareFile()}>
-        Dosyayı paylaş
+        <span className="inline-flex items-center gap-3"><Icon icon={DatabaseBackup} size={18} /> Yedek oluştur</span>
       </button>
       <button type="button" className="row-link" onClick={() => fileRef.current?.click()}>
-        Yedeği geri yükle
+        <span className="inline-flex items-center gap-3"><Icon icon={RotateCcw} size={18} /> Yedeği geri yükle</span>
+      </button>
+      <button type="button" className="row-link" disabled={!status} onClick={() => void shareFile()}>
+        <span className="inline-flex items-center gap-3"><Icon icon={FileDown} size={18} /> JSON dışa aktar</span>
       </button>
       <button type="button" className="row-link" disabled={busy} onClick={() => void exportCsvFile()}>
-        CSV dışa aktar
+        <span className="inline-flex items-center gap-3"><Icon icon={SheetIcon} size={18} /> CSV dışa aktar</span>
       </button>
       {status ? (
         <div className="mt-4">
@@ -114,7 +118,9 @@ export function BackupPanel() {
       {shareNote ? <p className="mt-2 text-[13px] text-ink-muted">{shareNote}</p> : null}
       {snaps.length > 0 ? (
         <div className="mt-4">
-        <h2 className="text-[13px] text-ink-muted">Otomatik kopyalar</h2>
+        <h2 className="flex items-center gap-2 text-[13px] text-ink-muted">
+          <Icon icon={History} size={18} /> Otomatik kopyalar
+        </h2>
           {snaps.map((snap) => (
             <button
               key={snap.at}

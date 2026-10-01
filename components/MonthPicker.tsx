@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { expenseInMonth, formatMonthTitle, istanbulParts } from "@/lib/format";
 import { shiftViewMonth, useViewMonth, setViewMonth } from "@/lib/view-month";
 import { useStore } from "@/lib/store";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
 
 export function MonthPicker() {
@@ -24,15 +26,16 @@ export function MonthPicker() {
   return (
     <>
       <div className="flex items-center justify-between">
-        <button type="button" className="nav-arrow" onClick={() => shiftViewMonth(-1)} aria-label="Önceki ay">
-          ‹
+        <button type="button" className="icon-btn press" onClick={() => shiftViewMonth(-1)} aria-label="Önceki ay">
+          <Icon icon={ChevronLeft} size={22} />
         </button>
-        <button type="button" className="month-title" onClick={() => { setYear(view.year); setOpen(true); }}>
+        <button type="button" className="month-title press inline-flex items-center gap-1.5" onClick={() => { setYear(view.year); setOpen(true); }}>
+          <Icon icon={CalendarDays} size={18} />
           {title}
-          <span aria-hidden> ▾</span>
+          <Icon icon={ChevronDown} size={18} />
         </button>
-        <button type="button" className="nav-arrow" onClick={() => shiftViewMonth(1)} aria-label="Sonraki ay">
-          ›
+        <button type="button" className="icon-btn press" onClick={() => shiftViewMonth(1)} aria-label="Sonraki ay">
+          <Icon icon={ChevronRight} size={22} />
         </button>
       </div>
       <Sheet open={open} title="Dönem" onClose={() => setOpen(false)}>

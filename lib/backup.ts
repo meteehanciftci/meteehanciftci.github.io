@@ -1,7 +1,7 @@
 import { migrateUnknown } from "./storage";
 import type { AppState, Category, ClassCorrection, Expense, PaymentMethod } from "./types";
 
-export const APP_VERSION = "1.4";
+export const APP_VERSION = "1.5";
 export const BACKUP_VERSION = 1;
 
 export type BackupFile = {

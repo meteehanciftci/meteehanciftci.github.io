@@ -26,14 +26,22 @@ import { AI_QUESTIONS, answerQuestion, shortInsights } from "@/lib/insights";
 import { useStore } from "@/lib/store";
 import { useViewMonth } from "@/lib/view-month";
 import { CLASS_LABEL, type SpendClass } from "@/lib/types";
+import { Clock3, Layers3, LayoutDashboard, Store, Tags } from "lucide-react";
+import { Icon } from "@/components/Icon";
 
-const TABS = ["Genel", "Sınıflar", "Kategoriler", "Zaman", "İşletmeler"] as const;
+const TABS = [
+  { id: "Genel", icon: LayoutDashboard },
+  { id: "Sınıflar", icon: Layers3 },
+  { id: "Kategoriler", icon: Tags },
+  { id: "Zaman", icon: Clock3 },
+  { id: "İşletmeler", icon: Store },
+] as const;
 
 export default function SummaryPage() {
   const { state, ledger } = useStore();
   const view = useViewMonth();
   const router = useRouter();
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Genel");
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("Genel");
   const [answer, setAnswer] = useState("");
   const currency = state.settings.currency;
   const current = useMemo(
@@ -73,12 +81,13 @@ export default function SummaryPage() {
       <div className="mt-5 flex gap-4 overflow-x-auto text-[15px]">
         {TABS.map((item) => (
           <button
-            key={item}
+            key={item.id}
             type="button"
-            className={tab === item ? "font-semibold" : "text-ink-muted"}
-            onClick={() => setTab(item)}
+            className={`press inline-flex items-center gap-1.5 pb-1 ${tab === item.id ? "font-semibold" : "text-ink-muted"}`}
+            onClick={() => setTab(item.id)}
           >
-            {item}
+            <Icon icon={item.icon} size={18} />
+            {item.id}
           </button>
         ))}
       </div>

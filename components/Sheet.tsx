@@ -37,7 +37,7 @@ export function Sheet({ open, title, onClose, children }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="sheet-title"
-        className="relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-canvas shadow-2xl sm:rounded-[28px]"
+        className="relative z-10 sheet-panel flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-canvas shadow-2xl sm:rounded-[28px]"
       >
         <div className="mx-auto mt-3 h-1.5 w-10 rounded-full bg-line" />
         <div className="flex items-center justify-between px-5 pb-2 pt-3">

@@ -5,6 +5,9 @@ import { suggestSpendClass } from "@/lib/classifier";
 import { formatMoney, fromDatetimeLocal, parseAmountInput, toDatetimeLocal } from "@/lib/format";
 import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
 import { CLASS_LABEL, type Expense, type ExpenseDraft, type MethodType, type SpendClass } from "@/lib/types";
+import { Check, ChevronRight, Diamond, FileText, ShieldCheck, Sparkles, Store, Tags, WalletCards, CalendarDays, CreditCard, Landmark, Wallet } from "lucide-react";
+import { CategoryMark } from "./category-icon";
+import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
 
 const METHOD_TYPES: { id: MethodType; label: string }[] = [
@@ -126,7 +129,9 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
   return (
     <form onSubmit={handleSubmit} className="flex flex-col">
       <label className="block">
-        <span className="text-[13px] text-ink-muted">Harcama yeri</span>
+        <span className="flex items-center gap-2 text-[13px] text-ink-muted">
+          <Icon icon={Store} size={18} /> Harcama yeri
+        </span>
         <input
           value={place}
           onChange={(event) => handlePlaceChange(event.target.value)}
@@ -173,16 +178,21 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
       </label>
 
       <div className="mt-6 grid grid-cols-3 gap-2">
-        {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
+        {([
+          ["need", ShieldCheck],
+          ["want", Sparkles],
+          ["luxury", Diamond],
+        ] as const).map(([id, glyph]) => (
           <button
             key={id}
             type="button"
-            className={spendClass === id ? `chip chip-active class-${id}` : `chip class-${id}`}
+            className={spendClass === id ? `chip chip-active class-${id} press inline-flex items-center justify-center gap-1` : `chip class-${id} press inline-flex items-center justify-center gap-1`}
             onClick={() => {
               setSpendClass(id);
               setClassTouched(true);
             }}
           >
+            <Icon icon={glyph} size={18} />
             {CLASS_LABEL[id]}
           </button>
         ))}
@@ -191,9 +201,10 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
         <div className="mt-3 flex items-center justify-between gap-3">
           <button
             type="button"
-            className="text-left text-[13px] text-ink-muted"
+            className="inline-flex items-center gap-2 text-left text-[13px] text-ink-muted"
             onClick={() => setAiOpen((open) => !open)}
           >
+            <Icon icon={Sparkles} size={18} />
             AI: {CLASS_LABEL[suggestion.spendClass]} · %{Math.round(suggestion.confidence * 100)}
           </button>
           {suggestion.spendClass !== spendClass ? (
@@ -213,41 +224,56 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
       {aiOpen && suggestion?.warning ? <p className="mt-1 text-[13px] text-ink-muted">{suggestion.warning}</p> : null}
 
       <button type="button" className="row-link mt-4" onClick={() => setCategoryOpen(true)}>
-        <span>
-          <span className="block text-[12px] text-ink-muted">Kategori{suggested ? " · önerildi" : ""}</span>
-          {selectedCategory?.name ?? "Seç"}
+        <span className="flex items-center gap-3">
+          <Icon icon={Tags} size={18} />
+          <span>
+            <span className="block text-[12px] text-ink-muted">Kategori{suggested ? " · önerildi" : ""}</span>
+            {selectedCategory?.name ?? "Seç"}
+          </span>
         </span>
-        <span className="text-ink-muted">›</span>
+        <Icon icon={ChevronRight} size={18} />
       </button>
       <button type="button" className="row-link" onClick={() => setMethodOpen(true)}>
-        <span>
-          <span className="block text-[12px] text-ink-muted">Ödeme yöntemi</span>
-          {selectedMethod ? `${selectedMethod.code} · ${selectedMethod.name}` : "Seç"}
+        <span className="flex items-center gap-3">
+          <Icon icon={WalletCards} size={18} />
+          <span>
+            <span className="block text-[12px] text-ink-muted">Ödeme yöntemi</span>
+            {selectedMethod ? `${selectedMethod.code} · ${selectedMethod.name}` : "Seç"}
+          </span>
         </span>
-        <span className="text-ink-muted">›</span>
+        <Icon icon={ChevronRight} size={18} />
       </button>
       <label className="row-link">
-        <span>
-          <span className="block text-[12px] text-ink-muted">Tarih</span>
-          <input
-            type="datetime-local"
-            className="plain !px-0 !py-0"
-            value={occurredAt}
-            onFocus={() => {
-              if (!occurredAt) setOccurredAt(toDatetimeLocal(Date.now()));
-            }}
-            onChange={(event) => setOccurredAt(event.target.value)}
-          />
+        <span className="flex items-center gap-3">
+          <Icon icon={CalendarDays} size={18} />
+          <span>
+            <span className="block text-[12px] text-ink-muted">Tarih</span>
+            <input
+              type="datetime-local"
+              className="plain !px-0 !py-0"
+              value={occurredAt}
+              onFocus={() => {
+                if (!occurredAt) setOccurredAt(toDatetimeLocal(Date.now()));
+              }}
+              onChange={(event) => setOccurredAt(event.target.value)}
+            />
+          </span>
         </span>
+        <Icon icon={ChevronRight} size={18} />
       </label>
-      <label className="block py-3">
-        <span className="text-[12px] text-ink-muted">Not</span>
-        <input
-          className="plain"
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="İsteğe bağlı"
-        />
+      <label className="row-link">
+        <span className="flex items-center gap-3">
+          <Icon icon={FileText} size={18} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[12px] text-ink-muted">Not</span>
+            <input
+              className="plain !px-0 !py-0"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Not ekle"
+            />
+          </span>
+        </span>
       </label>
 
       {isCredit ? (
@@ -278,8 +304,8 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
         </p>
       ) : null}
 
-      <button type="submit" className="btn-primary mt-8">
-        {submitLabel}
+      <button type="submit" className="btn-primary press mt-8 gap-2">
+        <Icon icon={Check} size={20} /> {submitLabel === "Kaydet" ? "Harcamayı Kaydet" : submitLabel}
       </button>
 
       <Sheet open={categoryOpen} title="Kategori" onClose={() => setCategoryOpen(false)}>
@@ -295,8 +321,11 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
                   setCategoryOpen(false);
                 }}
               >
-                <span>{category.name}</span>
-                {category.id === categoryId ? <span>✓</span> : null}
+                <span className="flex items-center gap-3">
+                  <CategoryMark name={category.name} />
+                  {category.name}
+                </span>
+                {category.id === categoryId ? <Icon icon={Check} size={18} /> : null}
               </button>
             </li>
           ))}
@@ -337,11 +366,14 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit }
                   setMethodOpen(false);
                 }}
               >
-                <span>
-                  {method.code}
-                  <span className="ml-2 text-ink-muted">{method.name}</span>
+                <span className="flex items-center gap-3">
+                  <Icon icon={method.type === "credit" ? CreditCard : method.type === "debit" ? Landmark : Wallet} size={18} />
+                  <span>
+                    {method.code}
+                    <span className="ml-2 text-ink-muted">{method.name}</span>
+                  </span>
                 </span>
-                {method.id === methodId ? <span>✓</span> : null}
+                {method.id === methodId ? <Icon icon={Check} size={18} /> : null}
               </button>
             </li>
           ))}

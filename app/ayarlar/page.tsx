@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { BackupPanel } from "@/components/BackupPanel";
 import { useSortedCategories, useSortedMethods, useStore } from "@/lib/store";
+import { BrainCircuit, Info, Palette, Tags, WalletCards } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import type { CurrencyCode, MethodType, ThemePreference } from "@/lib/types";
 
 const METHOD_TYPES: { id: MethodType; label: string }[] = [
@@ -32,15 +34,14 @@ export default function SettingsPage() {
 
   return (
     <main className="px-5 pt-8 pb-8">
-      <p className="text-[13px] font-medium text-ink-muted">Ayarlar</p>
-      <h1 className="mt-2 text-[28px] font-semibold tracking-tight">Defter</h1>
+      <h1 className="text-[28px] font-semibold tracking-tight">Ayarlar</h1>
       <BackupPanel />
 
       <section className="mt-10">
-        <h2 className="mb-3 text-[15px] font-semibold">Ödeme yöntemleri</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[15px] font-semibold"><Icon icon={WalletCards} size={18} /> Ödeme yöntemleri</h2>
         <ul className="space-y-3">
           {methods.map((method) => (
-            <li key={method.id} className="rounded-2xl border border-line bg-[color:var(--white)] p-3">
+            <li key={method.id} className="border-b border-line py-3">
               <input
                 className="field"
                 defaultValue={method.name}
@@ -121,7 +122,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="mb-3 text-[15px] font-semibold">Kategoriler</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[15px] font-semibold"><Icon icon={Tags} size={18} /> Kategoriler</h2>
         <ul className="space-y-2">
           {categories.map((category) => (
             <li key={category.id} className="flex items-center gap-2">
@@ -183,7 +184,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="mb-3 text-[15px] font-semibold">Tema</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[15px] font-semibold"><Icon icon={Palette} size={18} /> Görünüm</h2>
         <div className="flex flex-wrap gap-2">
           {(
             [
@@ -205,7 +206,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="mb-3 text-[15px] font-semibold">Harcama AI</h2>
+        <h2 className="mb-3 flex items-center gap-2 text-[15px] font-semibold"><Icon icon={BrainCircuit} size={18} /> AI ayarları</h2>
         <p className="mb-3 text-sm leading-6 text-ink-muted">
           Öneriler ve içgörüler yalnızca bu cihazdaki kayıtlardan üretilir. Harcama verisi dışarı gönderilmez.
         </p>
@@ -266,10 +267,9 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="mb-2 text-[15px] font-semibold">Uygulama bilgileri</h2>
+        <h2 className="mb-2 flex items-center gap-2 text-[15px] font-semibold"><Icon icon={Info} size={18} /> Hakkında</h2>
         <p className="text-sm leading-6 text-ink-muted">
-          Harcama Defteri 1.4 — kayıtlar cihazda kalır. Ay değiştirmek veriyi silmez.
-          Paylaşım iptali yedek sayılmaz.
+          Harcama Defteri 1.5 — kayıtlar cihazda kalır. Ay değiştirmek veriyi silmez.
         </p>
       </section>
     </main>

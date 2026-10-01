@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { formatClock, formatMoney, istanbulParts, startOfIstanbulDay } from "@/lib/format";
 import { CLASS_LABEL, type Expense } from "@/lib/types";
+import { CategoryMark } from "./category-icon";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useExpenseSheet } from "./ExpenseSheetContext";
 import { useStore } from "@/lib/store";
@@ -45,7 +46,10 @@ export function ExpenseSlip({ expense }: { expense: Expense }) {
         else if (dx.current > 72) openEdit(expense);
       }}
     >
-      <div className="min-w-0">
+      <span className="mt-0.5">
+        <CategoryMark name={category?.name} />
+      </span>
+      <div className="min-w-0 flex-1">
         <p className="truncate text-[16px] font-semibold tracking-tight">{expense.place}</p>
         <p className="mt-0.5 truncate text-[13px] text-ink-muted">
           {category?.name ?? "Kategori"} · {CLASS_LABEL[expense.spendClass]}
