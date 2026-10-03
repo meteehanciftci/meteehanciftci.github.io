@@ -111,7 +111,7 @@ function withAmountCheck(
 ): ClassSuggestion {
   const samePlace = state.expenses.filter((row) => placeKey(row.place) === placeKey(input.place));
   const sameCat = state.expenses.filter((row) => row.categoryId === input.categoryId);
-  const sample = (samePlace.length >= 3 ? samePlace : sameCat).map((row) => row.amount);
+  const sample = (samePlace.length >= 3 ? samePlace : sameCat).map((row) => row.amountKurus / 100);
   if (sample.length < 3 || input.amount <= 0) return suggestion;
   const mid = median(sample);
   if (mid > 0 && input.amount >= mid * 4 && input.amount >= 2500) {
@@ -129,6 +129,10 @@ export function formatSuggestion(suggestion: ClassSuggestion) {
   return `AI önerisi: ${CLASS_LABEL[suggestion.spendClass]} · %${pct} güven`;
 }
 
-export function inferLegacyClass(expense: Pick<Expense, "place" | "amount" | "categoryId" | "note">, state: AppState): SpendClass {
-  return suggestSpendClass(state, expense).spendClass;
+export function inferLegacyClass(
+  expense: Pick<Expense, "place" | "categoryId" | "note"> & { amount?: number; amountKurus?: number },
+  state: AppState,
+): SpendClass {
+  const amount = expense.amount ?? (expense.amountKurus ? expense.amountKurus / 100 : 0);
+  return suggestSpendClass(state, { place: expense.place, amount, categoryId: expense.categoryId }).spendClass;
 }

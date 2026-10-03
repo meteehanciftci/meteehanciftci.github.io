@@ -17,6 +17,25 @@ export function formatMoney(amount: number, currency: CurrencyCode = "TRY"): str
   return `${num} ${symbols[currency]}`;
 }
 
+export function toExpenseDay(ts: number = Date.now()): string {
+  const { year, month, day } = istanbulParts(ts);
+  return `${year}-${pad(month)}-${pad(day)}`;
+}
+
+export function fromExpenseDay(day: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return Date.now();
+  return Date.parse(`${day}T12:00:00+03:00`);
+}
+
+export function isExpenseDay(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = Date.parse(`${value}T12:00:00+03:00`);
+  if (!Number.isFinite(parsed)) return false;
+  const parts = istanbulParts(parsed);
+  return parts.year === year && parts.month === month && parts.day === day;
+}
+
 export const formatLira = (amount: number) => formatMoney(amount, "TRY");
 
 export function formatAmountInput(amount: number): string {
@@ -237,7 +256,15 @@ export function toExpenseDate(ts: number): string {
   return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:00`;
 }
 
-export function expenseInMonth(expense: { occurredAt: number }, year: number, month: number) {
+export function expenseInMonth(
+  expense: { occurredAt: number; occurredOn?: string },
+  year: number,
+  month: number,
+) {
+  if (expense.occurredOn && /^\d{4}-\d{2}-\d{2}$/.test(expense.occurredOn)) {
+    const [y, m] = expense.occurredOn.split("-").map(Number);
+    return y === year && m === month;
+  }
   const parts = istanbulParts(expense.occurredAt);
   return parts.year === year && parts.month === month;
 }

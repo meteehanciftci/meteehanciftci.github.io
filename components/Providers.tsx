@@ -1,6 +1,6 @@
 "use client";
 
-import { BottomNav } from "./BottomNav";
+import { AppNav } from "./AppNav";
 import { ExpenseSheetHost } from "./ExpenseSheetHost";
 import { ExpenseSheetProvider } from "./ExpenseSheetContext";
 import { ThemeSync } from "./ThemeSync";
@@ -13,10 +13,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeSync />
       <ToastProvider>
         <ExpenseSheetProvider>
-          <div className="mx-auto min-h-dvh w-full max-w-lg bg-canvas pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
+          <AppNav />
+          <div className="mx-auto min-h-dvh w-full bg-canvas pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:ml-52 md:max-w-none md:pb-8">
             {children}
           </div>
-          <BottomNav />
           <ExpenseSheetHost />
         </ExpenseSheetProvider>
       </ToastProvider>

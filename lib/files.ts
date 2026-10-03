@@ -44,7 +44,7 @@ export function inspectBackupText(content: string, expectedExpenses: number): In
     ok: true,
     expenses: parsed.state.expenses.length,
     categories: parsed.state.categories.length,
-    methods: parsed.state.methods.length,
+    methods: parsed.state.paymentSources.length,
   };
 }
 
@@ -126,7 +126,7 @@ export async function shareSavedBackup(): Promise<"shared" | "cancelled" | "miss
 }
 
 export async function saveCsv(filename: string, content: string): Promise<boolean> {
-  if (!content.includes("yer")) return false;
+  if (!content.includes("odeme_kaynagi") && !content.includes("yer")) return false;
   if (Capacitor.isNativePlatform()) {
     try {
       await Filesystem.writeFile({

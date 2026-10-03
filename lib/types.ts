@@ -15,6 +15,7 @@ export type ExcludedKind =
   | "system";
 
 export type MethodType = "credit" | "debit" | "cash";
+export type PaymentSourceType = "cash" | "bank_account" | "credit_card" | "overdraft";
 export type SpendClass = "need" | "want" | "luxury";
 export type ThemePreference = "light" | "dark" | "system";
 export type CurrencyCode = "TRY" | "EUR" | "USD";
@@ -34,12 +35,40 @@ export const CLASS_LABEL: Record<SpendClass, string> = {
   luxury: "Lüks",
 };
 
+export const SOURCE_TYPE_LABEL: Record<PaymentSourceType, string> = {
+  cash: "Nakit",
+  bank_account: "Vadesiz hesap",
+  credit_card: "Kredi kartı",
+  overdraft: "Ek hesap",
+};
+
 export type Category = {
   id: string;
   name: string;
   order: number;
 };
 
+export type Bank = {
+  id: string;
+  name: string;
+  searchNames: string[];
+  shortCode?: string;
+  logoKey: string;
+  isManual: boolean;
+};
+
+export type PaymentSource = {
+  id: string;
+  bankId: string | null;
+  name: string;
+  type: PaymentSourceType;
+  sortOrder: number;
+  archived: boolean;
+  isDefault: boolean;
+  lastUsedAt: number;
+};
+
+/** Eski yedekler ve kullanılmayan analiz kodu için korunur. */
 export type PaymentMethod = {
   id: string;
   name: string;
@@ -52,13 +81,15 @@ export type Expense = {
   id: string;
   kind: LedgerKind;
   place: string;
-  amount: number;
+  amountKurus: number;
   categoryId: string;
-  methodId: string;
+  paymentSourceId: string | null;
   spendClass: SpendClass;
   aiSuggestedClass?: SpendClass;
+  occurredOn: string;
   occurredAt: number;
   createdAt: number;
+  updatedAt: number;
   note: string;
   installmentCount?: number;
 };
@@ -74,6 +105,7 @@ export type ClassCorrection = {
 export type Settings = {
   currency: CurrencyCode;
   theme: ThemePreference;
+  hideAmounts: boolean;
   aiEnabled: boolean;
   goals: {
     wantMaxPct: number | null;
@@ -82,8 +114,10 @@ export type Settings = {
 };
 
 export type AppState = {
-  version: 4;
+  version: 5;
   categories: Category[];
+  banks: Bank[];
+  paymentSources: PaymentSource[];
   methods: PaymentMethod[];
   expenses: Expense[];
   settings: Settings;
@@ -104,6 +138,9 @@ export type ExpenseFilters = {
   customFrom?: string;
   customTo?: string;
   categoryId: string;
+  bankId: string;
+  paymentSourceId: string;
+  unspecifiedSource: boolean;
   methodId: string;
   place: string;
   spendClass: SpendClass | "";
@@ -113,11 +150,12 @@ export type ExpenseFilters = {
 
 export type ExpenseDraft = {
   place: string;
-  amount: number;
+  amountKurus: number;
   categoryId: string;
-  methodId: string;
+  paymentSourceId: string | null;
   spendClass: SpendClass;
   aiSuggestedClass?: SpendClass;
+  occurredOn: string;
   occurredAt: number;
   note: string;
   installmentCount?: number;

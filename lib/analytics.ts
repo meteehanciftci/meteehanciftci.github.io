@@ -7,8 +7,8 @@ export function classTotals(expenses: Expense[]) {
   const totals: Record<SpendClass, number> = { need: 0, want: 0, luxury: 0 };
   let total = 0;
   for (const expense of expenses) {
-    totals[expense.spendClass] += expense.amount;
-    total += expense.amount;
+    totals[expense.spendClass] += expense.amountKurus / 100;
+    total += expense.amountKurus / 100;
   }
   const pct = (value: number) => (total > 0 ? (value / total) * 100 : 0);
   return {
@@ -40,13 +40,13 @@ export function monthlyTrend(expenses: Expense[], months = 6, now = Date.now()) 
 export function categoryBreakdown(state: AppState, expenses: Expense[], previous?: Expense[]) {
   const prevMap = new Map<string, number>();
   for (const expense of previous ?? []) {
-    prevMap.set(expense.categoryId, (prevMap.get(expense.categoryId) ?? 0) + expense.amount);
+    prevMap.set(expense.categoryId, (prevMap.get(expense.categoryId) ?? 0) + (expense.amountKurus / 100));
   }
-  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const total = expenses.reduce((sum, expense) => sum + (expense.amountKurus / 100), 0);
   return state.categories
     .map((category) => {
       const slice = expenses.filter((expense) => expense.categoryId === category.id);
-      const amount = slice.reduce((sum, expense) => sum + expense.amount, 0);
+      const amount = slice.reduce((sum, expense) => sum + (expense.amountKurus / 100), 0);
       const prev = prevMap.get(category.id) ?? 0;
       const mom = prev > 0 ? ((amount - prev) / prev) * 100 : amount > 0 ? 100 : 0;
       return {
@@ -65,7 +65,7 @@ export function placeBreakdown(expenses: Expense[]) {
   const map = new Map<string, { amount: number; count: number }>();
   for (const expense of expenses) {
     const prev = map.get(expense.place) ?? { amount: 0, count: 0 };
-    map.set(expense.place, { amount: prev.amount + expense.amount, count: prev.count + 1 });
+    map.set(expense.place, { amount: prev.amount + (expense.amountKurus / 100), count: prev.count + 1 });
   }
   return [...map.entries()]
     .map(([place, stats]) => ({ place, ...stats }))
@@ -73,10 +73,10 @@ export function placeBreakdown(expenses: Expense[]) {
 }
 
 export function methodBreakdown(state: AppState, expenses: Expense[]) {
-  return state.methods
+  return state.paymentSources
     .map((method) => {
-      const slice = expenses.filter((expense) => expense.methodId === method.id);
-      return { ...method, amount: slice.reduce((s, e) => s + e.amount, 0), classes: classTotals(slice) };
+      const slice = expenses.filter((expense) => expense.paymentSourceId === method.id);
+      return { ...method, amount: slice.reduce((s, e) => s + e.amountKurus / 100, 0), classes: classTotals(slice) };
     })
     .filter((row) => row.amount > 0)
     .sort((a, b) => b.amount - a.amount);
@@ -113,7 +113,7 @@ export function heatmapDays(expenses: Expense[], year: number, month: number) {
   for (const expense of expenses) {
     const p = istanbulParts(expense.occurredAt);
     if (p.year === year && p.month === month) {
-      byDay.set(p.day, (byDay.get(p.day) ?? 0) + expense.amount);
+      byDay.set(p.day, (byDay.get(p.day) ?? 0) + (expense.amountKurus / 100));
     }
   }
   const max = Math.max(1, ...byDay.values());
@@ -124,7 +124,7 @@ export function anomalies(expenses: Expense[]): { expense: Expense; message: str
   const byCat = new Map<string, number[]>();
   for (const expense of expenses) {
     const list = byCat.get(expense.categoryId) ?? [];
-    list.push(expense.amount);
+    list.push((expense.amountKurus / 100));
     byCat.set(expense.categoryId, list);
   }
   const medians = new Map<string, number>();
@@ -137,14 +137,14 @@ export function anomalies(expenses: Expense[]): { expense: Expense; message: str
   for (const expense of expenses) {
     const mid = medians.get(expense.categoryId);
     if (!mid || mid <= 0) continue;
-    if (expense.amount >= mid * 4 && expense.amount >= 1500) {
+    if ((expense.amountKurus / 100) >= mid * 4 && (expense.amountKurus / 100) >= 1500) {
       flags.push({
         expense,
-        message: `Bu kategoride tek işlem medyanın ${Math.round(expense.amount / mid)} katı.`,
+        message: `Bu kategoride tek işlem medyanın ${Math.round((expense.amountKurus / 100) / mid)} katı.`,
       });
     }
   }
-  return flags.sort((a, b) => b.expense.amount - a.expense.amount).slice(0, 8);
+  return flags.sort((a, b) => b.expense.amountKurus - a.expense.amountKurus).slice(0, 8);
 }
 
 export function balanceScore(expenses: Expense[], previous: Expense[], goals: AppState["settings"]["goals"]) {
@@ -180,7 +180,7 @@ export function dailySeries(expenses: Expense[]) {
   const map = new Map<number, number>();
   for (const expense of expenses) {
     const key = startOfIstanbulDay(expense.occurredAt);
-    map.set(key, (map.get(key) ?? 0) + expense.amount);
+    map.set(key, (map.get(key) ?? 0) + (expense.amountKurus / 100));
   }
   return [...map.entries()].sort((a, b) => a[0] - b[0]);
 }

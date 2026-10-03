@@ -38,7 +38,7 @@ export function shortInsights(
     if (biggest && Math.abs(biggest.mom) >= 8) {
       const prevAmount = previous
         .filter((e) => e.categoryId === biggest.id)
-        .reduce((s, e) => s + e.amount, 0);
+        .reduce((s, e) => s + e.amountKurus / 100, 0);
       lines.push(
         `${biggest.name} kategorisinde geçen döneme göre ${formatMoney(Math.abs(biggest.amount - prevAmount), currency)} fark var.`,
       );
@@ -102,9 +102,9 @@ export function answerQuestion(
     return `Bu ay ${formatMoney(cmp.current.total, currency)}, geçen ay ${formatMoney(cmp.previous.total, currency)} (${delta >= 0 ? "+" : ""}${delta.toFixed(1)}%). İstek: ${formatMoney(cmp.previous.amounts.want, currency)} → ${formatMoney(cmp.current.amounts.want, currency)}. Lüks: ${formatMoney(cmp.previous.amounts.luxury, currency)} → ${formatMoney(cmp.current.amounts.luxury, currency)}.`;
   }
   if (questionId === "want") {
-    const want = current.filter((e) => e.spendClass === "want").sort((a, b) => b.amount - a.amount).slice(0, 5);
+    const want = current.filter((e) => e.spendClass === "want").sort((a, b) => b.amountKurus - a.amountKurus).slice(0, 5);
     if (!want.length) return "Bu dönemde İstek sınıfında kayıt yok.";
-    return `En yüksek İstek kayıtları: ${want.map((e) => `${e.place} ${formatMoney(e.amount, currency)}`).join("; ")}.`;
+    return `En yüksek İstek kayıtları: ${want.map((e) => `${e.place} ${formatMoney(e.amountKurus / 100, currency)}`).join("; ")}.`;
   }
   if (questionId === "luxury") {
     const delta = cmp.current.amounts.luxury - cmp.previous.amounts.luxury;
@@ -130,7 +130,7 @@ export function answerQuestion(
     if (!flags.length) return "Bu dönemde medyandan belirgin sapma gösteren kayıt yok.";
     return flags
       .slice(0, 3)
-      .map((flag) => `${flag.expense.place} ${formatMoney(flag.expense.amount, currency)} — ${flag.message}`)
+      .map((flag) => `${flag.expense.place} ${formatMoney(flag.expense.amountKurus / 100, currency)} — ${flag.message}`)
       .join(" ");
   }
   if (questionId === "trend") {

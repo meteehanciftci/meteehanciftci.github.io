@@ -10,15 +10,27 @@ import { useToast } from "./Toast";
 import { useStore } from "@/lib/store";
 
 export function ExpenseSheetHost() {
-  const { addOpen, editing, detail, openedAt, close, openEdit } = useExpenseSheet();
-  const { addExpense, updateExpense, deleteExpense } = useStore();
+  const { addOpen, editing, detail, openedAt, close, openEdit, inlineDetail } = useExpenseSheet();
+  const { addExpense, updateExpense, deleteExpense, undoDelete } = useStore();
   const { showToast } = useToast();
   const [confirm, setConfirm] = useState(false);
   const target = editing ?? detail;
 
+  function remove(id: string) {
+    const removed = deleteExpense(id);
+    if (!removed) return;
+    showToast("Harcama silindi.", {
+      actionLabel: "Geri al",
+      duration: 8000,
+      onAction: () => {
+        if (undoDelete()) showToast("Harcama geri alındı.");
+      },
+    });
+  }
+
   return (
     <>
-      <Sheet open={Boolean(detail)} title="İşlem" onClose={close}>
+      <Sheet open={Boolean(detail) && !addOpen && !inlineDetail} title="Harcama" onClose={close}>
         {detail ? (
           <ExpenseDetail
             expense={detail}
@@ -27,17 +39,18 @@ export function ExpenseSheetHost() {
           />
         ) : null}
       </Sheet>
-      <Sheet open={addOpen} title={editing ? "Düzenle" : "Yeni Harcama"} onClose={close}>
+      <Sheet open={addOpen} title={editing ? "Düzenle" : "Harcama ekle"} onClose={close}>
         <ExpenseForm
           key={editing?.id ?? `new-${openedAt}`}
           expense={editing}
           nowTs={openedAt}
-          submitLabel={editing ? "Kaydet" : "Harcamayı Kaydet"}
+          submitLabel={editing ? "Kaydet" : "Harcamayı kaydet"}
           onSubmit={(values) => {
-            if (editing) updateExpense(editing.id, values);
-            else addExpense(values);
-            showToast("Harcama kaydedildi.");
+            const saved = editing ? updateExpense(editing.id, values) : Boolean(addExpense(values));
+            if (!saved) return false;
+            showToast(editing ? "Harcama güncellendi." : "Harcama kaydedildi.");
             close();
+            return true;
           }}
           onDelete={editing ? () => setConfirm(true) : undefined}
         />
@@ -47,10 +60,7 @@ export function ExpenseSheetHost() {
         title="Bu harcamayı silmek istediğinizden emin misiniz?"
         onCancel={() => setConfirm(false)}
         onConfirm={() => {
-          if (target) {
-            deleteExpense(target.id);
-            showToast("Harcama silindi.");
-          }
+          if (target) remove(target.id);
           setConfirm(false);
           close();
         }}

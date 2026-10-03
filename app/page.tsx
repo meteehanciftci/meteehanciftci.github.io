@@ -1,125 +1,151 @@
 "use client";
 
-import { useMemo } from "react";
-import Link from "next/link";
-import { ChartNoAxesCombined, Plus, ReceiptText, SlidersHorizontal, Sparkles } from "lucide-react";
-import { Diamond, ShieldCheck } from "lucide-react";
-import { LineChart } from "@/components/Charts";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Plus, ReceiptText, Search } from "lucide-react";
+import { AmountText } from "@/components/AmountText";
+import { ExpenseDetail } from "@/components/ExpenseDetail";
+import { FilterSheet } from "@/components/FilterSheet";
 import { GroupedExpenseList } from "@/components/GroupedExpenseList";
 import { Icon } from "@/components/Icon";
 import { MonthPicker } from "@/components/MonthPicker";
 import { useExpenseSheet } from "@/components/ExpenseSheetContext";
-import { classTotals, dailySeries, monthExpenses } from "@/lib/analytics";
-import { formatMoney, monthAnchor, shiftMonth } from "@/lib/format";
-import { shortInsights } from "@/lib/insights";
-import { useStore } from "@/lib/store";
+import { monthExpenses } from "@/lib/analytics";
+import { emptyFilters, filtersAreActive, sumExpenses } from "@/lib/domain";
+import { filterExpenses, useStore } from "@/lib/store";
 import { useViewMonth } from "@/lib/view-month";
-import { CLASS_LABEL, type SpendClass } from "@/lib/types";
+import type { ExpenseFilters } from "@/lib/types";
 
-const CLASS_ICON = {
-  need: ShieldCheck,
-  want: Sparkles,
-  luxury: Diamond,
-} as const;
-
-export default function HomePage() {
-  const { state, ledger } = useStore();
-  const { openAdd } = useExpenseSheet();
+function DefterInner({ initial }: { initial: ExpenseFilters }) {
+  const { state, ledger, deleteExpense } = useStore();
+  const { openAdd, openEdit, detail, close, setInlineDetail } = useExpenseSheet();
   const view = useViewMonth();
-  const currency = state.settings.currency;
-  const current = useMemo(
-    () => (view.all ? ledger : monthExpenses(ledger, view.year, view.month)),
-    [ledger, view],
+  const [filters, setFilters] = useState<ExpenseFilters>(initial);
+  const [searching, setSearching] = useState(Boolean(initial.query));
+  const [wide, setWide] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 960px)");
+    const sync = () => {
+      setWide(media.matches);
+      setInlineDetail(media.matches);
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => {
+      media.removeEventListener("change", sync);
+      setInlineDetail(false);
+    };
+  }, [setInlineDetail]);
+
+  const scoped = view.all ? ledger : monthExpenses(ledger, view.year, view.month);
+  const items = useMemo(
+    () => filterExpenses(scoped, { ...filters, date: view.all && filters.date === "this-month" ? "all" : filters.date }, state)
+      .sort((a, b) => b.occurredAt - a.occurredAt),
+    [scoped, filters, state, view.all],
   );
-  const previous = useMemo(() => {
-    if (view.all) return [];
-    const prev = shiftMonth(view.year, view.month, -1);
-    return monthExpenses(ledger, prev.year, prev.month);
-  }, [ledger, view]);
-  const summary = classTotals(current);
-  const trend = dailySeries(current);
-  const insight = state.settings.aiEnabled && !view.all
-    ? shortInsights(state, current, previous, currency, monthAnchor(view.year, view.month))[0]
-    : "";
-  const recent = [...current].sort((a, b) => b.occurredAt - a.occurredAt).slice(0, 5);
+  const monthSum = sumExpenses(scoped);
+  const filteredSum = sumExpenses(items);
+  const filtered = filtersAreActive({ ...filters, date: "all" }) || (filters.date !== "all" && filters.date !== "this-month");
 
   return (
-    <main className="px-5 pt-5">
-      <MonthPicker />
-      <p className="mt-7 text-[13px] text-ink-muted">{view.all ? "Tüm kayıtlar" : "Bu ay harcadın"}</p>
-      <p className="mt-1 text-[42px] font-semibold leading-none tracking-tight">
-        {formatMoney(summary.total, currency)}
-      </p>
-      <p className="mt-2 text-[14px] text-ink-muted">{current.length} işlem</p>
+    <main className="px-5 pt-5 md:px-8">
+      <div className={wide ? "grid grid-cols-[minmax(0,1fr)_minmax(320px,420px)] gap-8" : ""}>
+        <div>
+          <MonthPicker />
+          <p className="mt-6 text-[13px] text-ink-muted">{filtered ? "Filtrelenen toplam" : "Harcama toplamı"}</p>
+          <p className="mt-1 text-[40px] font-semibold leading-none tracking-tight">
+            <AmountText kurus={filtered ? filteredSum : monthSum} />
+          </p>
+          <p className="mt-2 text-[14px] text-ink-muted">{items.length} harcama</p>
 
-      <div className="mt-5 flex gap-2">
-        <button type="button" className="capsule press" onClick={openAdd}>
-          <Icon icon={Plus} size={18} /> Harcama
-        </button>
-        <Link href="/ozet" className="capsule press">
-          <Icon icon={ChartNoAxesCombined} size={18} /> Analiz
-        </Link>
-        <Link href="/liste" className="capsule press">
-          <Icon icon={SlidersHorizontal} size={18} /> Filtre
-        </Link>
-      </div>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <button type="button" className="btn-primary !w-auto px-5" onClick={openAdd}>
+              <Icon icon={Plus} size={18} /> Harcama ekle
+            </button>
+            <button
+              type="button"
+              className="icon-btn press"
+              aria-label="Harcama ara"
+              onClick={() => setSearching((open) => !open)}
+            >
+              <Icon icon={Search} size={22} />
+            </button>
+            <FilterSheet value={filters} onChange={setFilters} />
+          </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
-        {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
-          <Link key={id} href={`/liste?class=${id}`} className="press block">
-            <Icon icon={CLASS_ICON[id]} size={18} />
-            <p className="mt-2 text-[13px] text-ink-muted">{CLASS_LABEL[id]}</p>
-            <p className="mt-1 text-[15px] font-semibold tabular-nums">{formatMoney(summary.amounts[id], currency)}</p>
-            <p className="text-[12px] text-ink-muted">%{Math.round(summary.pct[id])}</p>
-          </Link>
-        ))}
-      </div>
+          {searching ? (
+            <label className="mt-3 flex items-center gap-2">
+              <Icon icon={Search} size={18} />
+              <input
+                className="plain min-w-0 flex-1"
+                value={filters.query}
+                onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))}
+                placeholder="Açıklama, kategori veya banka ara"
+                autoFocus
+              />
+            </label>
+          ) : null}
 
-      <section className="mt-8">
-        <h2 className="text-[13px] text-ink-muted">Harcama trendi</h2>
-        {trend.length === 0 ? (
-          <Empty onAdd={openAdd} />
-        ) : (
-          <LineChart points={trend.map(([day, value]) => ({ label: String(day), value }))} />
-        )}
-      </section>
-
-      {insight ? (
-        <section className="mt-8">
-          <h2 className="flex items-center gap-2 text-[13px] text-ink-muted">
-            <Icon icon={Sparkles} size={18} /> AI içgörüsü
-          </h2>
-          <p className="mt-2 text-[16px] leading-relaxed">{insight}</p>
-          <Link href="/ozet" className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium">
-            Detayları gör
-          </Link>
-        </section>
-      ) : null}
-
-      <section className="mt-8">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-[13px] text-ink-muted">Son harcamalar</h2>
-          <Link href="/liste" className="text-[13px] text-ink-muted">
-            Tümü
-          </Link>
+          {items.length === 0 ? (
+            <div className="py-16 text-center">
+              <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center text-ink-muted">
+                <Icon icon={ReceiptText} size={24} />
+              </span>
+              <p className="text-[16px] font-semibold">Henüz harcama yok</p>
+              <p className="mt-1 text-[13px] text-ink-muted">Tutarı gir, kaynağı seç, kaydet.</p>
+              <button type="button" className="capsule press mx-auto mt-4" onClick={openAdd}>
+                <Icon icon={Plus} size={18} /> Harcama ekle
+              </button>
+            </div>
+          ) : (
+            <GroupedExpenseList expenses={items} />
+          )}
         </div>
-        {recent.length === 0 ? <Empty onAdd={openAdd} /> : <GroupedExpenseList expenses={recent} />}
-      </section>
+
+        {wide ? (
+          <aside className="sticky top-6 self-start rounded-[28px] border border-line bg-[color:var(--white)] p-6">
+            {detail ? (
+              <ExpenseDetail
+                expense={state.expenses.find((item) => item.id === detail.id) ?? detail}
+                onEdit={() => openEdit(detail)}
+                onDelete={() => {
+                  deleteExpense(detail.id);
+                  close();
+                }}
+              />
+            ) : (
+              <div className="py-16 text-center text-ink-muted">
+                <p className="text-[16px] font-medium text-ink">Kayıt seçilmedi</p>
+                <p className="mt-2 text-[14px]">Soldaki listeden bir harcamaya dokunun.</p>
+              </div>
+            )}
+          </aside>
+        ) : null}
+      </div>
     </main>
   );
 }
 
-function Empty({ onAdd }: { onAdd: () => void }) {
+function DefterFromUrl() {
+  const params = useSearchParams();
+  const initial: ExpenseFilters = {
+    ...emptyFilters(),
+    date: "all",
+    categoryId: params.get("cat") ?? "",
+    bankId: params.get("bank") ?? "",
+    paymentSourceId: params.get("source") ?? "",
+    methodId: params.get("source") ?? "",
+    unspecifiedSource: params.get("source") === "unspecified",
+    query: params.get("q") ?? "",
+  };
+  return <DefterInner key={params.toString()} initial={initial} />;
+}
+
+export default function DefterPage() {
   return (
-    <div className="py-8 text-center">
-      <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center text-ink-muted">
-        <Icon icon={ReceiptText} size={24} />
-      </span>
-      <p className="text-[16px] font-semibold">Henüz harcama yok</p>
-      <p className="mt-1 text-[13px] text-ink-muted">İlk harcamanı ekleyerek başlayabilirsin.</p>
-      <button type="button" className="capsule press mx-auto mt-4" onClick={onAdd}>
-        <Icon icon={Plus} size={18} /> Harcama ekle
-      </button>
-    </div>
+    <Suspense fallback={<main className="px-5 pt-8 text-ink-muted">Yükleniyor…</main>}>
+      <DefterFromUrl />
+    </Suspense>
   );
 }

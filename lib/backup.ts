@@ -1,11 +1,13 @@
+import { mergeCatalog, syncDerived } from "./domain";
 import { migrateUnknown } from "./storage";
-import type { AppState, Category, ClassCorrection, Expense, PaymentMethod } from "./types";
+import type { AppState, Bank, Category, ClassCorrection, Expense, PaymentSource } from "./types";
+import { APP_VERSION, BACKUP_VERSION, STATE_VERSION } from "./version";
 
-export const APP_VERSION = "1.5";
-export const BACKUP_VERSION = 1;
+export { APP_VERSION, BACKUP_VERSION };
 
 export type BackupFile = {
   backupVersion: number;
+  schemaVersion: number;
   createdAt: string;
   appVersion: string;
   data: AppState;
@@ -15,12 +17,34 @@ export type BackupResult =
   | { ok: true; state: AppState; createdAt: string }
   | { ok: false; error: string };
 
+function hasCore(payload: Record<string, unknown>) {
+  return (
+    Array.isArray(payload.expenses) &&
+    Array.isArray(payload.categories) &&
+    (Array.isArray(payload.paymentSources) || Array.isArray(payload.methods)) &&
+    payload.settings &&
+    typeof payload.settings === "object"
+  );
+}
+
 export function buildBackup(state: AppState, now = new Date()): BackupFile {
+  const portable: AppState = syncDerived({
+    ...state,
+    banks: state.banks.map((bank) => ({
+      id: bank.id,
+      name: bank.name,
+      searchNames: bank.searchNames,
+      shortCode: bank.shortCode,
+      logoKey: bank.logoKey,
+      isManual: bank.isManual,
+    })),
+  });
   return {
     backupVersion: BACKUP_VERSION,
+    schemaVersion: STATE_VERSION,
     createdAt: now.toISOString(),
     appVersion: APP_VERSION,
-    data: state,
+    data: portable,
   };
 }
 
@@ -37,13 +61,7 @@ export function parseBackup(text: string): BackupResult {
   const record = raw as Record<string, unknown>;
   const wrapped = record.data && typeof record.data === "object" ? (record.data as Record<string, unknown>) : null;
   const payload = wrapped ?? record;
-  const hasCore =
-    Array.isArray(payload.expenses) &&
-    Array.isArray(payload.categories) &&
-    Array.isArray(payload.methods) &&
-    payload.settings &&
-    typeof payload.settings === "object";
-  if (!hasCore) return { ok: false, error: "Bu yedek dosyası geçerli değil." };
+  if (!hasCore(payload)) return { ok: false, error: "Bu yedek dosyası geçerli değil." };
   if (wrapped && typeof record.backupVersion !== "number") {
     return { ok: false, error: "Bu yedek dosyası geçerli değil." };
   }
@@ -66,23 +84,25 @@ export function mergeStates(current: AppState, incoming: AppState): AppState {
   for (const row of [...current.classCorrections, ...incoming.classCorrections]) {
     corrections.set(`${row.place}|${row.categoryId}|${row.at}|${row.chosen}`, row);
   }
-  return {
+  return syncDerived({
     ...current,
-    version: 4,
+    version: 5,
     categories: mergeById<Category>(current.categories, incoming.categories).map((item, index) => ({
       ...item,
       order: item.order ?? index,
     })),
-    methods: mergeById<PaymentMethod>(current.methods, incoming.methods),
+    banks: mergeCatalog(mergeById<Bank>(current.banks, incoming.banks)),
+    paymentSources: mergeById<PaymentSource>(current.paymentSources, incoming.paymentSources),
     expenses: mergeById<Expense>(current.expenses, incoming.expenses),
     classCorrections: [...corrections.values()].slice(0, 400),
     settings: {
       ...current.settings,
       ...incoming.settings,
+      hideAmounts: incoming.settings.hideAmounts ?? current.settings.hideAmounts,
       goals: {
         wantMaxPct: incoming.settings.goals.wantMaxPct ?? current.settings.goals.wantMaxPct,
         luxuryMaxPct: incoming.settings.goals.luxuryMaxPct ?? current.settings.goals.luxuryMaxPct,
       },
     },
-  };
+  });
 }

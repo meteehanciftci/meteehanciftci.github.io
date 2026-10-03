@@ -1,37 +1,17 @@
-import { inferLegacyClass } from "./classifier";
-import { istanbulParts } from "./format";
+import {
+  catalogBanks,
+  mergeCatalog,
+  migrateLegacyMethods,
+  resolveAmountKurus,
+  resolveOccurredOn,
+  syncDerived,
+} from "./domain";
+import { istanbulParts, toExpenseDay } from "./format";
 import { createSeedState, SEED_CATEGORIES } from "./seed";
-import { LEDGER_KIND, type AppState, type MethodType, type PaymentMethod, type SpendClass } from "./types";
+import { LEDGER_KIND, type AppState, type Expense, type PaymentSource, type SpendClass } from "./types";
 
 export const STORAGE_KEY = "harcama-defteri-v2";
 const LEGACY_KEY = "harcama-defteri-v1";
-
-function inferType(name: string): MethodType {
-  const n = name.toLocaleLowerCase("tr-TR");
-  if (n.includes("nakit")) return "cash";
-  if (n.includes("kredi") || n.includes("kk")) return "credit";
-  if (n.includes("hesap") || n.includes("banka") || n.includes("debit")) return "debit";
-  return "cash";
-}
-
-function inferCode(name: string, fallbackIndex: number): string {
-  const known: Record<string, string> = {
-    nakit: "NKT",
-    "enpara kk": "EPK",
-    "enpara kredi kartı": "EPK",
-    "enpara hesap": "EPH",
-    "enpara banka hesabı": "EPH",
-    "iş bankası kk": "ISK",
-    "yapı kredi kk": "YKK",
-  };
-  const key = name.toLocaleLowerCase("tr-TR");
-  if (known[key]) return known[key];
-  const letters = name
-    .replace(/[^A-Za-zÇĞİÖŞÜçğıöşü]/g, "")
-    .slice(0, 3)
-    .toLocaleUpperCase("tr-TR");
-  return letters || `Y${fallbackIndex + 1}`;
-}
 
 function renameCategory(name: string) {
   if (name === "Yeme & İçme" || name === "Yemek") return "Yeme İçme";
@@ -43,10 +23,45 @@ function asClass(value: unknown): SpendClass | null {
   return null;
 }
 
+function resolveWhen(expense: Record<string, unknown>, createdAt: number) {
+  if (Number.isFinite(Number(expense.occurredAt)) && Number(expense.occurredAt) > 0) {
+    return Number(expense.occurredAt);
+  }
+  const rawDate =
+    typeof expense.expenseDate === "string"
+      ? expense.expenseDate
+      : typeof expense.date === "string"
+        ? expense.date
+        : typeof expense.occurredOn === "string"
+          ? expense.occurredOn
+          : "";
+  if (rawDate) {
+    const day = rawDate.length >= 10 ? rawDate.slice(0, 10) : rawDate;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      const occurredAt = Date.parse(`${day}T12:00:00+03:00`);
+      if (Number.isFinite(occurredAt)) return occurredAt;
+    }
+    const iso = rawDate.length === 10 ? `${rawDate}T12:00:00` : rawDate.slice(0, 19);
+    const occurredAt = Date.parse(`${iso}+03:00`);
+    if (Number.isFinite(occurredAt)) return occurredAt;
+  }
+  return createdAt;
+}
+
+function knownSourceId(id: string | null, sources: PaymentSource[]) {
+  if (!id) return null;
+  return sources.some((source) => source.id === id) ? id : null;
+}
+
 export function migrateUnknown(raw: unknown): AppState | null {
   if (!raw || typeof raw !== "object") return null;
   const data = raw as Record<string, unknown>;
-  if (!Array.isArray(data.categories) || !Array.isArray(data.methods) || !Array.isArray(data.expenses)) {
+  const rawSources = Array.isArray(data.paymentSources)
+    ? (data.paymentSources as Record<string, unknown>[])
+    : Array.isArray(data.methods)
+      ? (data.methods as Record<string, unknown>[])
+      : null;
+  if (!Array.isArray(data.categories) || !rawSources || !Array.isArray(data.expenses)) {
     return null;
   }
 
@@ -63,70 +78,84 @@ export function migrateUnknown(raw: unknown): AppState | null {
     }
   }
 
-  const methods: PaymentMethod[] = (data.methods as Record<string, unknown>[]).map(
-    (method, index) => {
-      const name = String(method.name ?? "Yöntem");
-      return {
-        id: String(method.id ?? `m-${index}`),
-        name,
-        code: String(method.code ?? inferCode(name, index)).toLocaleUpperCase("tr-TR"),
-        type: (method.type as MethodType) || inferType(name),
-        lastUsedAt: Number(method.lastUsedAt) || 0,
-      };
-    },
+  const rawBanks = Array.isArray(data.banks) ? (data.banks as Record<string, unknown>[]) : [];
+  const banks = mergeCatalog(
+    rawBanks.map((bank, index) => ({
+      id: String(bank.id ?? `bank-${index}`),
+      name: String(bank.name ?? "Banka"),
+      searchNames: Array.isArray(bank.searchNames)
+        ? bank.searchNames.map((name) => String(name))
+        : [String(bank.name ?? "")],
+      shortCode: typeof bank.shortCode === "string" ? bank.shortCode : undefined,
+      logoKey: String(bank.logoKey ?? "manual"),
+      isManual: bank.isManual === true,
+    })),
   );
 
-  const draft: AppState = {
-    version: 4,
-    categories,
-    methods,
-    expenses: [],
-    classCorrections: [],
-    settings: {
-      currency: "TRY",
-      theme: "system",
-      aiEnabled: true,
-      goals: { wantMaxPct: null, luxuryMaxPct: null },
-    },
-  };
+  const paymentSources = migrateLegacyMethods(rawSources).map((source) => ({
+    ...source,
+    bankId: source.type === "cash" ? null : source.bankId && banks.some((bank) => bank.id === source.bankId)
+      ? source.bankId
+      : source.bankId && catalogBanks().some((bank) => bank.id === source.bankId)
+        ? source.bankId
+        : source.type === "cash"
+          ? null
+          : source.bankId && banks.some((bank) => bank.id === source.bankId)
+            ? source.bankId
+            : source.bankId,
+  }));
 
-  const expenses = (data.expenses as Record<string, unknown>[])
+  if (paymentSources.length > 0 && !paymentSources.some((source) => source.isDefault && !source.archived)) {
+    const firstActive = paymentSources.find((source) => !source.archived);
+    if (firstActive) firstActive.isDefault = true;
+  }
+
+  const expenses: Expense[] = (data.expenses as Record<string, unknown>[])
     .map((expense, index) => {
-      const createdAt = Number(expense.createdAt) || Date.now();
-      const kind = expense.kind === LEDGER_KIND ? LEDGER_KIND : LEDGER_KIND;
       if (expense.kind && expense.kind !== LEDGER_KIND) return null;
-      const when = resolveWhen(expense, createdAt);
+      const createdAt = Number(expense.createdAt) || Date.now();
+      const occurredAt = resolveWhen(expense, createdAt);
+      const amountKurus = resolveAmountKurus(expense);
+      if (amountKurus <= 0) return null;
+      const rawSource =
+        typeof expense.paymentSourceId === "string"
+          ? expense.paymentSourceId
+          : typeof expense.methodId === "string"
+            ? expense.methodId
+            : "";
+      const paymentSourceId = knownSourceId(rawSource || null, paymentSources);
       const partial = {
         id: String(expense.id ?? `exp-${index}`),
-        kind,
+        kind: LEDGER_KIND,
         place: String(expense.place ?? ""),
-        amount: Number(expense.amount) || 0,
+        amountKurus,
         categoryId: String(expense.categoryId ?? categories[0]?.id ?? ""),
-        methodId: String(expense.methodId ?? methods[0]?.id ?? ""),
-        occurredAt: when,
+        paymentSourceId,
+        occurredOn: resolveOccurredOn(expense, occurredAt),
+        occurredAt,
         createdAt,
+        updatedAt: Number(expense.updatedAt) || createdAt,
         note: String(expense.note ?? ""),
         installmentCount:
           typeof expense.installmentCount === "number" && expense.installmentCount > 1
             ? expense.installmentCount
             : undefined,
       };
-      const spendClass =
-        asClass(expense.spendClass) ?? inferLegacyClass(partial, draft);
       return {
         ...partial,
-        spendClass,
+        spendClass: asClass(expense.spendClass) ?? "need",
         aiSuggestedClass: asClass(expense.aiSuggestedClass) ?? undefined,
       };
     })
-    .filter((expense): expense is NonNullable<typeof expense> => expense != null && expense.amount > 0);
+    .filter((expense): expense is Expense => expense != null);
 
   const settingsRaw = (data.settings as Record<string, unknown>) ?? {};
   const goalsRaw = (settingsRaw.goals as Record<string, unknown>) ?? {};
-  return {
-    version: 4,
+  return syncDerived({
+    version: 5,
     categories,
-    methods,
+    banks: mergeCatalog(banks),
+    paymentSources,
     expenses,
     classCorrections: Array.isArray(data.classCorrections)
       ? (data.classCorrections as Record<string, unknown>[]).map((row) => ({
@@ -143,31 +172,14 @@ export function migrateUnknown(raw: unknown): AppState | null {
         settingsRaw.theme === "light" || settingsRaw.theme === "dark" || settingsRaw.theme === "system"
           ? settingsRaw.theme
           : "system",
-      aiEnabled: settingsRaw.aiEnabled !== false,
+      hideAmounts: settingsRaw.hideAmounts === true,
+      aiEnabled: settingsRaw.aiEnabled === true,
       goals: {
         wantMaxPct: typeof goalsRaw.wantMaxPct === "number" ? goalsRaw.wantMaxPct : null,
         luxuryMaxPct: typeof goalsRaw.luxuryMaxPct === "number" ? goalsRaw.luxuryMaxPct : null,
       },
     },
-  };
-}
-
-function resolveWhen(expense: Record<string, unknown>, createdAt: number) {
-  if (Number.isFinite(Number(expense.occurredAt)) && Number(expense.occurredAt) > 0) {
-    return Number(expense.occurredAt);
-  }
-  const rawDate =
-    typeof expense.expenseDate === "string"
-      ? expense.expenseDate
-      : typeof expense.date === "string"
-        ? expense.date
-        : "";
-  if (rawDate) {
-    const iso = rawDate.length === 10 ? `${rawDate}T12:00:00` : rawDate.slice(0, 19);
-    const occurredAt = Date.parse(`${iso}+03:00`);
-    if (Number.isFinite(occurredAt)) return occurredAt;
-  }
-  return createdAt;
+  });
 }
 
 export const META_KEY = "harcama-defteri-meta";
@@ -358,3 +370,5 @@ export async function readFileBackup(): Promise<{ name: string; text: string; at
     return null;
   }
 }
+
+export { toExpenseDay };

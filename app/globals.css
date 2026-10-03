@@ -2,21 +2,29 @@
 
 :root,
 html[data-theme="light"] {
-  --canvas: #f4f1ec;
+  --canvas: #f5f6f8;
   --white: #ffffff;
-  --ink: #141414;
-  --ink-muted: #6f6b66;
-  --line: #e6e1d8;
-  --accent: #1f6b4a;
+  --ink: #182431;
+  --ink-muted: #5b6b7a;
+  --line: #e3e8ee;
+  --accent: #365f80;
 }
 
 html[data-theme="dark"] {
-  --canvas: #0f0f10;
-  --white: #1c1c1e;
-  --ink: #f4f1ec;
-  --ink-muted: #a8a49d;
-  --line: #2a2a2c;
-  --accent: #6fbf97;
+  --canvas: #12171d;
+  --white: #1b222b;
+  --ink: #eef2f6;
+  --ink-muted: #9aa8b5;
+  --line: #2a3340;
+  --accent: #7fa3c2;
+}
+
+.logo-plate {
+  background: #f5f6f8;
+}
+
+html[data-theme="dark"] .logo-plate {
+  background: #eef2f6;
 }
 
 @theme inline {
@@ -213,8 +221,8 @@ body {
 }
 
 .btn-primary {
-  background: var(--ink);
-  color: var(--canvas);
+  background: var(--accent);
+  color: #f5f6f8;
 }
 
 .btn-secondary {

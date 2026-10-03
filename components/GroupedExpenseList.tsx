@@ -1,7 +1,9 @@
 "use client";
 
 import { formatDayHeading, startOfIstanbulDay } from "@/lib/format";
+import { sumKurus } from "@/lib/money";
 import type { Expense } from "@/lib/types";
+import { AmountText } from "./AmountText";
 import { ExpenseSlip } from "./ExpenseSlip";
 
 export function GroupedExpenseList({
@@ -20,15 +22,19 @@ export function GroupedExpenseList({
   }
 
   if (expenses.length === 0) {
-    return <p className="py-16 text-center text-[15px] text-ink-muted">{empty ?? "Bu ay için harcama kaydı bulunmuyor."}</p>;
+    return <p className="py-16 text-center text-[15px] text-ink-muted">{empty ?? "Bu dönemde harcama yok."}</p>;
   }
 
   return (
     <div>
       {groups.map((group) => (
         <section key={group.key} className="mt-6">
-          <h2 className="px-1 text-[12px] font-medium uppercase tracking-[0.14em] text-ink-muted">
-            {formatDayHeading(group.key)}
+          <h2 className="flex items-baseline justify-between px-1 text-[12px] font-medium uppercase tracking-[0.14em] text-ink-muted">
+            <span>{formatDayHeading(group.key)}</span>
+            <AmountText
+              kurus={sumKurus(group.items.map((item) => item.amountKurus))}
+              className="normal-case tracking-normal"
+            />
           </h2>
           <ul className="mt-1">
             {group.items.map((expense) => (
