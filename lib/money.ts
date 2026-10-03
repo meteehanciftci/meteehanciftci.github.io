@@ -99,7 +99,7 @@ export function sumKurus(values: number[]): number {
   return total;
 }
 
-export function amountErrorMessage(reason: ParseAmountResult extends { ok: false } ? ParseAmountResult["reason"] : never) {
+export function amountErrorMessage(reason: "empty" | "invalid" | "non_positive" | "overflow") {
   if (reason === "empty") return "Tutar girin.";
   if (reason === "non_positive") return "Gider tutarı sıfırdan büyük olmalı.";
   if (reason === "overflow") return "Tutar üst sınırı aşıyor.";

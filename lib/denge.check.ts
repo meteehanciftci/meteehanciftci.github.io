@@ -47,13 +47,18 @@ assert.equal(seed.banks.some((bank) => foldTr(bank.name) === "nakit"), false);
 
 const first = parseAmountToKurus("125,50");
 const second = parseAmountToKurus("75,25");
-assert.equal(first.ok && first.kurus, 12550);
-assert.equal(second.ok && second.kurus, 7525);
+const whole = parseAmountToKurus("125");
+const thousands = parseAmountToKurus("1.250,50");
+assert.equal(first.ok, true);
+assert.equal(second.ok, true);
+assert.equal(whole.ok, true);
+assert.equal(thousands.ok, true);
+if (first.ok) assert.equal(first.kurus, 12550);
+if (second.ok) assert.equal(second.kurus, 7525);
+if (whole.ok) assert.equal(whole.kurus, 12500);
+if (thousands.ok) assert.equal(thousands.kurus, 125050);
 assert.equal(sumKurus([12550, 7525]), 20075);
 assert.equal(formatKurus(20075), "200,75 ₺");
-
-assert.equal(parseAmountToKurus("125").ok && parseAmountToKurus("125").ok ? parseAmountToKurus("125").kurus : 0, 12500);
-assert.equal(parseAmountToKurus("1.250,50").ok && parseAmountToKurus("1.250,50").ok ? 125050 : 0, 125050);
 assert.equal(parseAmountToKurus("125.50").ok, false);
 assert.equal(parseAmountToKurus("0").ok, false);
 assert.equal(parseAmountToKurus("-10").ok, false);

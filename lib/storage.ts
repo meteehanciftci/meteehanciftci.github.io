@@ -1,5 +1,4 @@
 import {
-  catalogBanks,
   mergeCatalog,
   migrateLegacyMethods,
   resolveAmountKurus,
@@ -92,17 +91,10 @@ export function migrateUnknown(raw: unknown): AppState | null {
     })),
   );
 
+  const knownBankIds = new Set(banks.map((bank) => bank.id));
   const paymentSources = migrateLegacyMethods(rawSources).map((source) => ({
     ...source,
-    bankId: source.type === "cash" ? null : source.bankId && banks.some((bank) => bank.id === source.bankId)
-      ? source.bankId
-      : source.bankId && catalogBanks().some((bank) => bank.id === source.bankId)
-        ? source.bankId
-        : source.type === "cash"
-          ? null
-          : source.bankId && banks.some((bank) => bank.id === source.bankId)
-            ? source.bankId
-            : source.bankId,
+    bankId: source.type === "cash" ? null : source.bankId && knownBankIds.has(source.bankId) ? source.bankId : source.bankId,
   }));
 
   if (paymentSources.length > 0 && !paymentSources.some((source) => source.isDefault && !source.archived)) {
@@ -110,8 +102,8 @@ export function migrateUnknown(raw: unknown): AppState | null {
     if (firstActive) firstActive.isDefault = true;
   }
 
-  const expenses: Expense[] = (data.expenses as Record<string, unknown>[])
-    .map((expense, index) => {
+  const expenses = (data.expenses as Record<string, unknown>[])
+    .map((expense, index): Expense | null => {
       if (expense.kind && expense.kind !== LEDGER_KIND) return null;
       const createdAt = Number(expense.createdAt) || Date.now();
       const occurredAt = resolveWhen(expense, createdAt);

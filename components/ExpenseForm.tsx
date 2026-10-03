@@ -32,7 +32,7 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
   const [paymentSourceId, setPaymentSourceId] = useState<string | null>(
     expense ? expense.paymentSourceId : fallbackSource,
   );
-  const [occurredOn, setOccurredOn] = useState(expense?.occurredOn ?? toExpenseDay(nowTs ?? Date.now()));
+  const [occurredOn, setOccurredOn] = useState(expense?.occurredOn ?? (nowTs ? toExpenseDay(nowTs) : ""));
   const [place, setPlace] = useState(expense?.place ?? expense?.note ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -175,6 +175,9 @@ export function ExpenseForm({ expense, nowTs, submitLabel = "Kaydet", onSubmit, 
               type="date"
               className="plain !px-0 !py-0"
               value={occurredOn}
+              onFocus={() => {
+                if (!occurredOn && nowTs) setOccurredOn(toExpenseDay(nowTs));
+              }}
               onChange={(event) => setOccurredOn(event.target.value)}
             />
           </span>
