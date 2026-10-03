@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Harcama Defteri</string>
-    <string name="title_activity_main">Harcama Defteri</string>
+    <string name="app_name">Denge</string>
+    <string name="title_activity_main">Denge</string>
     <string name="package_name">com.harcamadefteri.app</string>
     <string name="custom_url_scheme">com.harcamadefteri.app</string>
 </resources>

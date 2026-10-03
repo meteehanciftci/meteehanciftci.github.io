@@ -1,9 +1,12 @@
 "use client";
 
-import { formatMoney, istanbulParts } from "@/lib/format";
-import { CLASS_LABEL, type Expense } from "@/lib/types";
+import { UNSPECIFIED_SOURCE_LABEL } from "@/lib/domain";
+import { istanbulParts } from "@/lib/format";
+import type { Expense } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import { CalendarDays, FileText, Pencil, Tags, Trash2, WalletCards, type LucideIcon } from "lucide-react";
+import { AmountText } from "./AmountText";
+import { BankLogo } from "./BankLogo";
 import { CategoryMark } from "./category-icon";
 import { Icon } from "./Icon";
 
@@ -25,27 +28,40 @@ export function ExpenseDetail({
 }) {
   const { state } = useStore();
   const category = state.categories.find((item) => item.id === expense.categoryId);
-  const method = state.methods.find((item) => item.id === expense.methodId);
+  const source = state.paymentSources.find((item) => item.id === expense.paymentSourceId);
+  const bank = source?.bankId ? state.banks.find((item) => item.id === source.bankId) : null;
   const parts = istanbulParts(expense.occurredAt);
   const clock = `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
+  const title = expense.place || category?.name || "Harcama";
 
   return (
     <div>
       <div className="flex items-center gap-3">
         <CategoryMark name={category?.name} size={20} />
-        <p className="text-[28px] font-semibold tracking-tight">{expense.place}</p>
+        <p className="text-[28px] font-semibold tracking-tight">{title}</p>
       </div>
       <p className="mt-4 text-[34px] font-semibold tabular-nums tracking-tight">
-        {formatMoney(expense.amount, state.settings.currency)}
-      </p>
-      <p className="mt-1 text-[14px] text-ink-muted">
-        {category?.name ?? "Kategori"} · {CLASS_LABEL[expense.spendClass]}
+        <AmountText kurus={expense.amountKurus} />
       </p>
       <dl className="mt-6">
-        <DetailRow icon={CalendarDays} label="Tarih" value={`${monthFmt.format(new Date(expense.occurredAt))} · ${clock}`} />
-        <DetailRow icon={WalletCards} label="Ödeme" value={method ? `${method.code} · ${method.name}` : "—"} />
+        <DetailRow
+          icon={CalendarDays}
+          label="Tarih"
+          value={`${monthFmt.format(new Date(expense.occurredAt))} · ${clock}`}
+        />
+        <div className="flex items-center justify-between gap-4 border-t border-line py-3">
+          <dt className="flex items-center gap-2 text-[13px] text-ink-muted">
+            <Icon icon={WalletCards} size={18} /> Ödeme kaynağı
+          </dt>
+          <dd className="flex items-center gap-2 text-right text-[15px] font-medium">
+            <BankLogo bank={source?.type === "cash" ? null : bank} size="row" />
+            {source
+              ? `${source.type === "cash" ? "Nakit" : bank?.name ?? "Banka"} / ${source.name}`
+              : UNSPECIFIED_SOURCE_LABEL}
+          </dd>
+        </div>
         <DetailRow icon={Tags} label="Kategori" value={category?.name ?? "—"} />
-        <DetailRow icon={FileText} label="Not" value={expense.note || "—"} />
+        <DetailRow icon={FileText} label="Açıklama" value={expense.place || expense.note || "—"} />
       </dl>
       <div className="mt-8 flex items-center justify-between">
         <button type="button" className="press inline-flex min-h-11 items-center gap-2 text-[15px] font-medium" onClick={onEdit}>

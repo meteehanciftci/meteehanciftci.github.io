@@ -4,42 +4,49 @@ import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Icon } from "./Icon";
 import { Sheet } from "./Sheet";
-import { useSortedCategories, useSortedMethods } from "@/lib/store";
-import { CLASS_LABEL, type DateFilter, type ExpenseFilters, type SpendClass } from "@/lib/types";
+import { useSortedCategories, useStore } from "@/lib/store";
+import type { DateFilter, ExpenseFilters } from "@/lib/types";
+import { UNSPECIFIED_SOURCE_LABEL } from "@/lib/domain";
 
 const DATE_OPTIONS: { id: DateFilter; label: string }[] = [
   { id: "all", label: "Tümü" },
   { id: "today", label: "Bugün" },
-  { id: "this-week", label: "Bu Hafta" },
-  { id: "this-month", label: "Bu Ay" },
-  { id: "last-month", label: "Geçen Ay" },
-  { id: "custom", label: "Özel Tarih" },
+  { id: "this-week", label: "Bu hafta" },
+  { id: "this-month", label: "Bu ay" },
+  { id: "last-month", label: "Geçen ay" },
+  { id: "custom", label: "Özel tarih" },
 ];
 
 type Props = {
   value: ExpenseFilters;
   onChange: (next: ExpenseFilters) => void;
-  iconOnly?: boolean;
 };
 
-export function FilterSheet({ value, onChange, iconOnly = false }: Props) {
+export function FilterSheet({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const categories = useSortedCategories();
-  const methods = useSortedMethods();
+  const { state } = useStore();
   const active =
     value.date !== "all" ||
     value.categoryId ||
+    value.bankId ||
+    value.paymentSourceId ||
     value.methodId ||
+    value.unspecifiedSource ||
     value.place ||
-    value.spendClass ||
     value.minAmount ||
-    value.maxAmount;
+    value.maxAmount ||
+    value.query;
+
+  const banksInUse = state.banks.filter((bank) =>
+    state.paymentSources.some((source) => source.bankId === bank.id),
+  );
 
   return (
     <>
-      <button type="button" className={iconOnly ? "icon-btn press relative" : "chip"} onClick={() => setOpen(true)} aria-label="Filtrele">
-        {iconOnly ? <Icon icon={SlidersHorizontal} size={22} /> : `Filtre${active ? " · açık" : ""}`}
-        {iconOnly && active ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-ink" /> : null}
+      <button type="button" className="icon-btn press relative" onClick={() => setOpen(true)} aria-label="Filtrele">
+        <Icon icon={SlidersHorizontal} size={22} />
+        {active ? <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-accent" /> : null}
       </button>
       <Sheet open={open} title="Filtreler" onClose={() => setOpen(false)}>
         <div className="flex flex-col gap-5 pb-4">
@@ -63,9 +70,7 @@ export function FilterSheet({ value, onChange, iconOnly = false }: Props) {
                   type="date"
                   className="field"
                   value={value.customFrom ?? ""}
-                  onChange={(event) =>
-                    onChange({ ...value, customFrom: event.target.value })
-                  }
+                  onChange={(event) => onChange({ ...value, customFrom: event.target.value })}
                 />
                 <input
                   type="date"
@@ -76,34 +81,6 @@ export function FilterSheet({ value, onChange, iconOnly = false }: Props) {
               </div>
             ) : null}
           </fieldset>
-
-          <fieldset>
-            <legend className="mb-2 text-[13px] font-medium text-ink-muted">Harcama sınıfı</legend>
-            <div className="flex flex-wrap gap-2">
-              {(["need", "want", "luxury"] as SpendClass[]).map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={value.spendClass === id ? "chip chip-active" : "chip"}
-                  onClick={() =>
-                    onChange({ ...value, spendClass: value.spendClass === id ? "" : id })
-                  }
-                >
-                  {CLASS_LABEL[id]}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <label>
-            <span className="mb-2 block text-[13px] font-medium text-ink-muted">Harcama yeri</span>
-            <input
-              className="field"
-              value={value.place}
-              onChange={(event) => onChange({ ...value, place: event.target.value })}
-              placeholder="Migros"
-            />
-          </label>
 
           <label>
             <span className="mb-2 block text-[13px] font-medium text-ink-muted">Kategori</span>
@@ -122,43 +99,47 @@ export function FilterSheet({ value, onChange, iconOnly = false }: Props) {
           </label>
 
           <label>
-            <span className="mb-2 block text-[13px] font-medium text-ink-muted">
-              Ödeme yöntemi
-            </span>
+            <span className="mb-2 block text-[13px] font-medium text-ink-muted">Banka</span>
             <select
               className="field"
-              value={value.methodId}
-              onChange={(event) => onChange({ ...value, methodId: event.target.value })}
+              value={value.bankId}
+              onChange={(event) =>
+                onChange({ ...value, bankId: event.target.value, paymentSourceId: "", methodId: "", unspecifiedSource: false })
+              }
             >
               <option value="">Tümü</option>
-              {methods.map((method) => (
-                <option key={method.id} value={method.id}>
-                  {method.code} — {method.name}
+              {banksInUse.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.name}
                 </option>
               ))}
             </select>
           </label>
 
-          <div className="grid grid-cols-2 gap-2">
-            <label>
-              <span className="mb-2 block text-[13px] font-medium text-ink-muted">Min ₺</span>
-              <input
-                className="field tabular-nums"
-                inputMode="decimal"
-                value={value.minAmount}
-                onChange={(event) => onChange({ ...value, minAmount: event.target.value })}
-              />
-            </label>
-            <label>
-              <span className="mb-2 block text-[13px] font-medium text-ink-muted">Max ₺</span>
-              <input
-                className="field tabular-nums"
-                inputMode="decimal"
-                value={value.maxAmount}
-                onChange={(event) => onChange({ ...value, maxAmount: event.target.value })}
-              />
-            </label>
-          </div>
+          <label>
+            <span className="mb-2 block text-[13px] font-medium text-ink-muted">Ödeme kaynağı</span>
+            <select
+              className="field"
+              value={value.unspecifiedSource ? "unspecified" : value.paymentSourceId || value.methodId}
+              onChange={(event) => {
+                const next = event.target.value;
+                onChange({
+                  ...value,
+                  unspecifiedSource: next === "unspecified",
+                  paymentSourceId: next === "unspecified" ? "" : next,
+                  methodId: next === "unspecified" ? "" : next,
+                });
+              }}
+            >
+              <option value="">Tümü</option>
+              <option value="unspecified">{UNSPECIFIED_SOURCE_LABEL}</option>
+              {state.paymentSources.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <button
             type="button"
@@ -168,13 +149,17 @@ export function FilterSheet({ value, onChange, iconOnly = false }: Props) {
                 ...value,
                 date: "all",
                 categoryId: "",
+                bankId: "",
+                paymentSourceId: "",
                 methodId: "",
+                unspecifiedSource: false,
                 place: "",
                 spendClass: "",
                 minAmount: "",
                 maxAmount: "",
                 customFrom: "",
                 customTo: "",
+                query: "",
               })
             }
           >

@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.harcamadefteri.app",
-  appName: "Harcama Defteri",
+  appName: "Denge",
   webDir: "out",
   android: {
     allowMixedContent: true,
@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
   plugins: {
     StatusBar: {
       style: "LIGHT",
-      backgroundColor: "#F4F1EC",
+      backgroundColor: "#F5F6F8",
     },
   },
 };

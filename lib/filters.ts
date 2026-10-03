@@ -1,16 +1,8 @@
-import type { ExpenseFilters, SpendClass } from "@/lib/types";
+import { emptyFilters as domainEmpty } from "./domain";
+import type { ExpenseFilters, SpendClass } from "./types";
 
 export function emptyFilters(): ExpenseFilters {
-  return {
-    query: "",
-    date: "all",
-    categoryId: "",
-    methodId: "",
-    place: "",
-    spendClass: "",
-    minAmount: "",
-    maxAmount: "",
-  };
+  return domainEmpty();
 }
 
 export function withClass(spendClass: SpendClass, extra: Partial<ExpenseFilters> = {}): ExpenseFilters {

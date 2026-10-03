@@ -21,6 +21,7 @@
 /build
 *.apk
 !public/harcama-defteri.apk
+!public/denge-2.0.apk
 *.aab
 android/.gradle
 android/app/build

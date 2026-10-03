@@ -17,6 +17,8 @@ type SheetApi = {
   detail: Expense | null;
   addOpen: boolean;
   openedAt: number;
+  inlineDetail: boolean;
+  setInlineDetail: (value: boolean) => void;
   openAdd: () => void;
   openEdit: (expense: Expense) => void;
   openDetail: (expense: Expense) => void;
@@ -30,6 +32,7 @@ export function ExpenseSheetProvider({ children }: { children: ReactNode }) {
   const [editing, setEditing] = useState<Expense | null>(null);
   const [detail, setDetail] = useState<Expense | null>(null);
   const [openedAt, setOpenedAt] = useState(0);
+  const [inlineDetail, setInlineDetail] = useState(false);
 
   const openAdd = useCallback(() => {
     setEditing(null);
@@ -59,12 +62,14 @@ export function ExpenseSheetProvider({ children }: { children: ReactNode }) {
       detail,
       addOpen: mode === "add" || mode === "edit",
       openedAt,
+      inlineDetail,
+      setInlineDetail,
       openAdd,
       openEdit,
       openDetail,
       close,
     }),
-    [editing, detail, mode, openedAt, openAdd, openEdit, openDetail, close],
+    [editing, detail, mode, openedAt, inlineDetail, openAdd, openEdit, openDetail, close],
   );
 
   return <SheetContext.Provider value={value}>{children}</SheetContext.Provider>;

@@ -1,40 +1,36 @@
-import { formatMoney, istanbulParts } from "./format";
-import { CLASS_LABEL, LEDGER_KIND, type AppState, type Expense } from "./types";
+import { bankOfSource, ledgerExpenses, sourceOfExpense, UNSPECIFIED_SOURCE_LABEL } from "./domain";
+import { istanbulParts } from "./format";
+import { formatKurus } from "./money";
+import type { AppState, Expense } from "./types";
 
-export function ledgerExpenses(expenses: Expense[]): Expense[] {
-  return expenses.filter((expense) => expense.kind === LEDGER_KIND);
+export { ledgerExpenses };
+
+function csvCell(value: string) {
+  let text = value.replace(/\r\n/g, "\n");
+  if (/^[=+\-@|]/.test(text)) text = `'${text}`;
+  return `"${text.replaceAll('"', '""')}"`;
 }
 
 export function exportCsv(state: AppState): string {
-  const header = [
-    "tarih",
-    "saat",
-    "yer",
-    "tutar",
-    "odeme",
-    "sinif",
-    "kategori",
-    "not",
-  ];
+  const header = ["tarih", "kategori", "banka", "odeme_kaynagi", "tutar", "aciklama"];
   const rows = ledgerExpenses(state.expenses).map((expense) => {
     const p = istanbulParts(expense.occurredAt);
     const category = state.categories.find((item) => item.id === expense.categoryId)?.name ?? "";
-    const method = state.methods.find((item) => item.id === expense.methodId);
+    const source = sourceOfExpense(expense, state.paymentSources);
+    const bank = bankOfSource(source ?? undefined, state.banks);
     const pad = (n: number) => String(n).padStart(2, "0");
+    const day = expense.occurredOn || `${p.year}-${pad(p.month)}-${pad(p.day)}`;
+    const [year, month, dayNum] = day.split("-");
     return [
-      `${pad(p.day)}.${pad(p.month)}.${p.year}`,
-      `${pad(p.hour)}:${pad(p.minute)}`,
-      expense.place,
-      String(expense.amount).replace(".", ","),
-      method?.name ?? "",
-      CLASS_LABEL[expense.spendClass],
+      `${dayNum}.${month}.${year}`,
       category,
-      expense.note,
-    ]
-      .map((cell) => `"${cell.replaceAll('"', '""')}"`)
-      .join(";");
+      source?.type === "cash" ? "Nakit" : (bank?.name ?? ""),
+      source?.name ?? UNSPECIFIED_SOURCE_LABEL,
+      formatKurus(expense.amountKurus, state.settings.currency).replace(" ₺", "").replace(" €", "").replace(" $", ""),
+      expense.place || expense.note,
+    ].map((cell) => csvCell(cell));
   });
-  return [header.join(";"), ...rows].join("\n");
+  return ["\uFEFF" + header.join(";"), ...rows.map((row) => row.join(";"))].join("\n");
 }
 
 export function backupJson(state: AppState): string {
@@ -53,6 +49,6 @@ export function downloadText(filename: string, content: string, type: string) {
 
 export function installmentLabel(expense: Expense, currency: AppState["settings"]["currency"]) {
   if (!expense.installmentCount || expense.installmentCount < 2) return null;
-  const part = Math.round((expense.amount / expense.installmentCount) * 100) / 100;
-  return `${expense.installmentCount} × ${formatMoney(part, currency)}`;
+  const part = Math.trunc(expense.amountKurus / expense.installmentCount);
+  return `${expense.installmentCount} × ${formatKurus(part, currency)}`;
 }

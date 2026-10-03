@@ -9,12 +9,12 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Harcama Defteri",
-  description: "Günlük harcamaları hızlıca kaydedin ve geçmişi kolayca görün.",
-  applicationName: "Harcama Defteri",
+  title: "Denge",
+  description: "Kişisel harcama defteri. Harcama ekle, kaynağını seç, gerektiğinde düzelt.",
+  applicationName: "Denge",
   appleWebApp: {
     capable: true,
-    title: "Harcama Defteri",
+    title: "Denge",
     statusBarStyle: "default",
   },
   icons: {
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#F4F1EC",
+  themeColor: "#F5F6F8",
   viewportFit: "cover",
 };
 
